@@ -78,11 +78,15 @@ class BaseDDL:
         auto_now_add = field_describe.get("auto_now_add", False)
         auto_now = field_describe.get("auto_now", False)
         if default is not None or auto_now_add:
-            if field_describe.get("field_type") in [
-                "UUIDField",
-                "TextField",
-                "JSONField",
-            ] or is_default_function(default):
+            if (
+                field_describe.get("field_type")
+                in [
+                    "UUIDField",
+                    "TextField",
+                    "JSONField",
+                ]
+                or is_default_function(default)
+            ):
                 default = ""
             else:
                 try:
@@ -115,7 +119,9 @@ class BaseDDL:
                 nullable="NOT NULL" if not field_describe.get("nullable") else "",
                 unique="UNIQUE" if field_describe.get("unique") else "",
                 comment=self.schema_generator._column_comment_generator(
-                    table=db_table, column=db_column, comment=field_describe.get("description"),
+                    table=db_table,
+                    column=db_column,
+                    comment=field_describe.get("description"),
                 )
                 if description
                 else "",

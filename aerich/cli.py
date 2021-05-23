@@ -49,7 +49,11 @@ def coro(f):
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.version_option(__version__, "-V", "--version")
 @click.option(
-    "-c", "--config", default="aerich.ini", show_default=True, help="Config file.",
+    "-c",
+    "--config",
+    default="aerich.ini",
+    show_default=True,
+    help="Config file.",
 )
 @click.option("--app", required=False, help="Tortoise-ORM app name.")
 @click.option(
@@ -118,7 +122,9 @@ async def upgrade(ctx: Context):
                 for upgrade_query in upgrade_query_list:
                     await conn.execute_script(upgrade_query)
                 await Aerich.create(
-                    version=version_file, app=app, content=get_models_describe(app),
+                    version=version_file,
+                    app=app,
+                    content=get_models_describe(app),
                 )
             click.secho(f"Success upgrade {version_file}", fg=Color.green)
             migrated = True
@@ -212,12 +218,17 @@ async def history(ctx: Context):
     help="Tortoise-ORM config module dict variable, like settings.TORTOISE_ORM.",
 )
 @click.option(
-    "--location", default="./migrations", show_default=True, help="Migrate store location.",
+    "--location",
+    default="./migrations",
+    show_default=True,
+    help="Migrate store location.",
 )
 @click.pass_context
 @coro
 async def init(
-    ctx: Context, tortoise_orm, location,
+    ctx: Context,
+    tortoise_orm,
+    location,
 ):
     config_file = ctx.obj["config_file"]
     name = ctx.obj["name"]
@@ -269,7 +280,9 @@ async def init_db(ctx: Context, safe):
 
     version = await Migrate.generate_version()
     await Aerich.create(
-        version=version, app=app, content=get_models_describe(app),
+        version=version,
+        app=app,
+        content=get_models_describe(app),
     )
     content = {
         "upgrade": [schema],
@@ -280,7 +293,11 @@ async def init_db(ctx: Context, safe):
 
 @cli.command(help="Introspects the database tables to standard output as TortoiseORM model.")
 @click.option(
-    "-t", "--table", help="Which tables to inspect.", multiple=True, required=False,
+    "-t",
+    "--table",
+    help="Which tables to inspect.",
+    multiple=True,
+    required=False,
 )
 @click.pass_context
 @coro

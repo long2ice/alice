@@ -17,7 +17,8 @@ def get_app_connection_name(config, app_name: str) -> str:
     if app:
         return app.get("default_connection", "default")
     raise BadOptionUsage(
-        option_name="--app", message=f'Can\'t get app named "{app_name}"',
+        option_name="--app",
+        message=f'Can\'t get app named "{app_name}"',
     )
 
 
@@ -68,7 +69,7 @@ def get_version_content_from_file(version_file: str) -> Dict:
     :param version_file:
     :return:
     """
-    with open(version_file, "r", encoding="utf-8") as f:
+    with open(version_file, encoding="utf-8") as f:
         content = f.read()
         first = content.index(_UPGRADE)
         try:

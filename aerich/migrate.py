@@ -237,12 +237,14 @@ class Migrate:
                 # add unique_together
                 for index in new_unique_together.difference(old_unique_together):
                     cls._add_operator(
-                        cls._add_index(model, index, True), upgrade,
+                        cls._add_index(model, index, True),
+                        upgrade,
                     )
                 # remove unique_together
                 for index in old_unique_together.difference(new_unique_together):
                     cls._add_operator(
-                        cls._drop_index(model, index, True), upgrade,
+                        cls._drop_index(model, index, True),
+                        upgrade,
                     )
 
                 old_data_fields = old_model_describe.get("data_fields")
@@ -266,7 +268,11 @@ class Migrate:
                             # rename field
                             if (
                                 changes[0]
-                                == ("change", "name", (old_data_field_name, new_data_field_name),)
+                                == (
+                                    "change",
+                                    "name",
+                                    (old_data_field_name, new_data_field_name),
+                                )
                                 and changes[1]
                                 == (
                                     "change",
@@ -297,15 +303,21 @@ class Migrate:
                                         and cls._db_version.startswith("5.")
                                     ):
                                         cls._add_operator(
-                                            cls._modify_field(model, new_data_field), upgrade,
+                                            cls._modify_field(model, new_data_field),
+                                            upgrade,
                                         )
                                     else:
                                         cls._add_operator(
-                                            cls._rename_field(model, *changes[1][2]), upgrade,
+                                            cls._rename_field(model, *changes[1][2]),
+                                            upgrade,
                                         )
                     if not is_rename:
                         cls._add_operator(
-                            cls._add_field(model, new_data_field,), upgrade,
+                            cls._add_field(
+                                model,
+                                new_data_field,
+                            ),
+                            upgrade,
                         )
                 # remove fields
                 for old_data_field_name in set(old_data_fields_name).difference(
@@ -375,11 +387,13 @@ class Migrate:
                             unique = new_data_field.get("unique")
                             if old_new[0] is False and old_new[1] is True:
                                 cls._add_operator(
-                                    cls._add_index(model, (field_name,), unique), upgrade,
+                                    cls._add_index(model, (field_name,), unique),
+                                    upgrade,
                                 )
                             else:
                                 cls._add_operator(
-                                    cls._drop_index(model, (field_name,), unique), upgrade,
+                                    cls._drop_index(model, (field_name,), unique),
+                                    upgrade,
                                 )
                         elif option == "db_field_types.":
                             # continue since repeated with others
@@ -401,7 +415,8 @@ class Migrate:
                         else:
                             # modify column
                             cls._add_operator(
-                                cls._modify_field(model, new_data_field), upgrade,
+                                cls._modify_field(model, new_data_field),
+                                upgrade,
                             )
 
         for old_model in old_models:
