@@ -9,6 +9,7 @@ class InspectDb:
     _table_template = "class {table}(Model):\n"
     _field_template_mapping = {
         "INT": "    {field} = fields.IntField({pk}{unique}{comment})",
+        "BIGINT": "    {field} = fields.BigIntField({pk}{unique}{comment})",
         "SMALLINT": "    {field} = fields.IntField({pk}{unique}{comment})",
         "TINYINT": "    {field} = fields.BooleanField({null}{default}{comment})",
         "VARCHAR": "    {field} = fields.CharField({pk}{unique}{length}{null}{default}{comment})",
@@ -30,7 +31,7 @@ class InspectDb:
                 ret = await self.conn.execute_query(sql_tables)
                 self.tables = map(lambda x: x["TABLE_NAME"], ret[1])
             for table in self.tables:
-                sql_show_create_table = f"SHOW CREATE TABLE {table}"
+                sql_show_create_table = f"SHOW CREATE TABLE `{table}`"
                 ret = await self.conn.execute_query(sql_show_create_table)
                 yield ret[1][0]["Create Table"]
         else:
@@ -67,7 +68,10 @@ class InspectDb:
                             else:
                                 default = "auto_now=True, "
                     else:
-                        default = f"default={column.default}, "
+                        if column.default == 'NULL':
+                            default = "default=None, "
+                        else:
+                            default = f"default={column.default}, "
 
                 if column.comment:
                     comment = f"description='{column.comment}', "
