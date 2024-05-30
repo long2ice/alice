@@ -12,8 +12,9 @@ from aerich.ddl.postgres import PostgresDDL
 from aerich.ddl.sqlite import SqliteDDL
 from aerich.migrate import Migrate
 
-db_url = os.getenv("TEST_DB", "sqlite://:memory:")
-db_url_second = os.getenv("TEST_DB_SECOND", "sqlite://:memory:")
+MEMORY_SQLITE = "sqlite://:memory:"
+db_url = os.getenv("TEST_DB", MEMORY_SQLITE)
+db_url_second = os.getenv("TEST_DB_SECOND", MEMORY_SQLITE)
 tortoise_orm = {
     "connections": {
         "default": expand_db_url(db_url, True),

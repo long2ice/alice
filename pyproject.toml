@@ -15,11 +15,13 @@ packages = [
 include = ["CHANGELOG.md", "LICENSE", "README.md"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
-tortoise-orm = "*"
+python = "^3.8"
+# TODO: Change tortoise-orm version to '*',
+# after `make test_mysql` issues with tortoise-orm>=0.21 fixed
+tortoise-orm = "<0.21.0"
 click = "*"
 asyncpg = { version = "*", optional = true }
-asyncmy = { version = "^0.2.8rc1", optional = true, allow-prereleases = true }
+asyncmy = { version = "^0.2.9", optional = true, allow-prereleases = true }
 pydantic = "^2.0"
 dictdiffer = "*"
 tomlkit = "*"
@@ -53,7 +55,7 @@ aerich = "aerich.cli:main"
 
 [tool.black]
 line-length = 100
-target-version = ['py36', 'py37', 'py38', 'py39']
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
 
 [tool.pytest.ini_options]
 asyncio_mode = 'auto'
@@ -62,5 +64,5 @@ asyncio_mode = 'auto'
 pretty = true
 ignore_missing_imports = true
 
-[tool.ruff]
+[tool.ruff.lint]
 ignore = ['E501']

@@ -14,13 +14,15 @@ up:
 deps:
 	@poetry install -E asyncpg -E asyncmy
 
-style: deps
+_style:
 	@isort -src $(checkfiles)
 	@black $(black_opts) $(checkfiles)
+style: deps _style
 
-check: deps
+_check:
 	@black --check $(black_opts) $(checkfiles) || (echo "Please run 'make style' to auto-fix style issues" && false)
-	@ruff $(checkfiles)
+	@ruff check $(checkfiles)
+check: deps _check
 
 test: deps
 	$(py_warn) TEST_DB=sqlite://:memory: py.test
@@ -34,9 +36,10 @@ test_mysql:
 test_postgres:
 	$(py_warn) TEST_DB="postgres://postgres:$(POSTGRES_PASS)@$(POSTGRES_HOST):$(POSTGRES_PORT)/test_\{\}" pytest -vv -s
 
-testall: deps test_sqlite test_postgres test_mysql
+_testall: test_sqlite test_postgres test_mysql
+testall: deps _test_all
 
 build: deps
 	@poetry build
 
-ci: check testall
+ci: check _testall
