@@ -32,7 +32,9 @@ isort = "*"
 black = "*"
 pytest = "*"
 pytest-xdist = "*"
-pytest-asyncio = "*"
+# Breaking change in 0.23.*
+# https://github.com/pytest-dev/pytest-asyncio/issues/706
+pytest-asyncio = "^0.21.2"
 bandit = "*"
 pytest-mock = "*"
 cryptography = "*"
