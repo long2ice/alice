@@ -26,7 +26,7 @@ pydantic = "^2.0"
 dictdiffer = "*"
 tomlkit = "*"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 ruff = "*"
 isort = "*"
 black = "*"
@@ -38,10 +38,12 @@ pytest-asyncio = "^0.21.2"
 bandit = "*"
 pytest-mock = "*"
 cryptography = "*"
+mypy = "^1.10.0"
 
 [tool.poetry.extras]
 asyncmy = ["asyncmy"]
 asyncpg = ["asyncpg"]
+
 
 [tool.aerich]
 tortoise_orm = "conftest.tortoise_orm"

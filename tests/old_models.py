@@ -35,13 +35,17 @@ class User(Model):
 class Email(Model):
     email = fields.CharField(max_length=200)
     is_primary = fields.BooleanField(default=False)
-    user = fields.ForeignKeyField("models.User", db_constraint=False)
+    user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
+        "models.User", db_constraint=False
+    )
 
 
 class Category(Model):
     slug = fields.CharField(max_length=200)
     name = fields.CharField(max_length=200)
-    user = fields.ForeignKeyField("models.User", description="User")
+    user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
+        "models.User", description="User"
+    )
     created_at = fields.DatetimeField(auto_now_add=True)
 
 

@@ -79,7 +79,7 @@ class Inspect:
     def __init__(self, conn: BaseDBAsyncClient, tables: Optional[List[str]] = None):
         self.conn = conn
         try:
-            self.database = conn.database
+            self.database = conn.database  # type:ignore[attr-defined]
         except AttributeError:
             pass
         self.tables = tables

@@ -22,6 +22,8 @@ style: deps _style
 _check:
 	@black --check $(black_opts) $(checkfiles) || (echo "Please run 'make style' to auto-fix style issues" && false)
 	@ruff check $(checkfiles)
+	@mypy $(checkfiles)
+	@bandit -r aerich
 check: deps _check
 
 test: deps

@@ -2,7 +2,7 @@ import asyncio
 import os
 from functools import wraps
 from pathlib import Path
-from typing import List
+from typing import Dict, List, cast
 
 import click
 import tomlkit
@@ -58,9 +58,9 @@ async def cli(ctx: Context, config, app):
         if not config_path.exists():
             raise UsageError("You must exec init first", ctx=ctx)
         content = config_path.read_text()
-        doc = tomlkit.parse(content)
+        doc: Dict[str, dict] = tomlkit.parse(content)
         try:
-            tool = doc["tool"]["aerich"]
+            tool = cast(Dict[str, str], doc["tool"]["aerich"])
             location = tool["location"]
             tortoise_orm = tool["tortoise_orm"]
             src_folder = tool.get("src_folder", CONFIG_DEFAULT_VALUES["src_folder"])
@@ -68,7 +68,7 @@ async def cli(ctx: Context, config, app):
             raise UsageError("You need run aerich init again when upgrade to 0.6.0+")
         add_src_path(src_folder)
         tortoise_config = get_tortoise_config(ctx, tortoise_orm)
-        app = app or list(tortoise_config.get("apps").keys())[0]
+        app = app or list(cast(dict, tortoise_config.get("apps")).keys())[0]
         command = Command(tortoise_config=tortoise_config, app=app, location=location)
         ctx.obj["command"] = command
         if invoked_subcommand != "init-db":
@@ -201,11 +201,10 @@ async def init(ctx: Context, tortoise_orm, location, src_folder):
     add_src_path(src_folder)
     get_tortoise_config(ctx, tortoise_orm)
     config_path = Path(config_file)
+    content = "[tool.aerich]"
     if config_path.exists():
         content = config_path.read_text()
-        doc = tomlkit.parse(content)
-    else:
-        doc = tomlkit.parse("[tool.aerich]")
+    doc: dict = tomlkit.parse(content)
     table = tomlkit.table()
     table["tortoise_orm"] = tortoise_orm
     table["location"] = location

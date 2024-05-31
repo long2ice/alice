@@ -37,7 +37,7 @@ class Email(Model):
     email = fields.CharField(max_length=200, index=True)
     is_primary = fields.BooleanField(default=False)
     address = fields.CharField(max_length=200)
-    users = fields.ManyToManyField("models.User")
+    users: fields.ManyToManyRelation[User] = fields.ManyToManyField("models.User")
 
 
 def default_name():
@@ -47,7 +47,9 @@ def default_name():
 class Category(Model):
     slug = fields.CharField(max_length=100)
     name = fields.CharField(max_length=200, null=True, default=default_name)
-    user = fields.ForeignKeyField("models.User", description="User")
+    user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
+        "models.User", description="User"
+    )
     created_at = fields.DatetimeField(auto_now_add=True)
 
 
@@ -74,7 +76,9 @@ class Config(Model):
     key = fields.CharField(max_length=20)
     value = fields.JSONField()
     status: Status = fields.IntEnumField(Status)
-    user = fields.ForeignKeyField("models.User", description="User")
+    user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
+        "models.User", description="User"
+    )
 
 
 class NewModel(Model):

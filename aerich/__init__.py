@@ -82,8 +82,8 @@ class Command:
             versions = [specified_version]
         else:
             versions = await Aerich.filter(app=self.app, pk__gte=specified_version.pk)
-        for version in versions:
-            file = version.version
+        for version_obj in versions:
+            file = version_obj.version
             async with in_transaction(
                 get_app_connection_name(self.tortoise_config, self.app)
             ) as conn:
@@ -94,7 +94,7 @@ class Command:
                 if not downgrade_sql.strip():
                     raise DowngradeError("No downgrade items found")
                 await conn.execute_script(downgrade_sql)
-                await version.delete()
+                await version_obj.delete()
                 if delete:
                     os.unlink(file_path)
                 ret.append(file)

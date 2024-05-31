@@ -60,7 +60,8 @@ where c.TABLE_SCHEMA = %s
                     comment=row["COLUMN_COMMENT"],
                     unique=row["COLUMN_KEY"] == "UNI",
                     extra=row["EXTRA"],
-                    unque=unique,
+                    # TODO: why `unque`?
+                    unque=unique,  # type:ignore
                     index=index,
                     length=row["CHARACTER_MAXIMUM_LENGTH"],
                     max_digits=row["NUMERIC_PRECISION"],

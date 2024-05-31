@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, List, Type, cast
+from typing import Any, Iterable, Type, cast
 
 from tortoise import BaseDBAsyncClient, Model
 from tortoise.backends.base.schema_generator import BaseSchemaGenerator
@@ -47,16 +47,26 @@ class BaseDDL:
     def drop_table(self, table_name: str) -> str:
         return self._DROP_TABLE_TEMPLATE.format(table_name=table_name)
 
+    def _get_comment(self, table, field_describe: dict, db_column=None) -> str:
+        comment = ""
+        if desc := field_describe.get("description"):
+            if db_column is None:
+                comment = self.schema_generator._table_comment_generator(table=table, comment=desc)
+            else:
+                comment = self.schema_generator._column_comment_generator(
+                    table=table,
+                    column=db_column,
+                    comment=desc,
+                )
+        return comment
+
     def create_m2m(
         self, model: "Type[Model]", field_describe: dict, reference_table_describe: dict
     ) -> str:
-        through = field_describe.get("through")
+        through = cast(str, field_describe.get("through"))
         pk_field = cast(dict, reference_table_describe.get("pk_field"))
         reference_id = pk_field.get("db_column")
         db_field_types = cast(dict, pk_field.get("db_field_types"))
-        comment = ""
-        if desc := field_describe.get("description"):
-            comment = self.schema_generator._table_comment_generator(table=through, comment=desc)
         return self._M2M_TABLE_TEMPLATE.format(
             table_name=through,
             backward_table=model._meta.db_table,
@@ -69,7 +79,7 @@ class BaseDDL:
             forward_type=db_field_types.get(self.DIALECT) or db_field_types.get(""),
             on_delete=field_describe.get("on_delete"),
             extra=self.schema_generator._table_generate_extra(table=through),
-            comment=comment,
+            comment=self._get_comment(through, field_describe),
         )
 
     def drop_m2m(self, table_name: str) -> str:
@@ -80,7 +90,7 @@ class BaseDDL:
         default = field_describe.get("default")
         if isinstance(default, Enum):
             default = default.value
-        db_column = field_describe.get("db_column")
+        db_column = cast(str, field_describe.get("db_column"))
         auto_now_add = field_describe.get("auto_now_add", False)
         auto_now = field_describe.get("auto_now", False)
         if default is not None or auto_now_add:
@@ -109,18 +119,11 @@ class BaseDDL:
         self, model: "Type[Model]", field_describe: dict, is_pk: bool, modify=False
     ) -> str:
         db_table = model._meta.db_table
-        db_column = field_describe.get("db_column")
+        db_column = cast(str, field_describe.get("db_column"))
         db_field_types = cast(dict, field_describe.get("db_field_types"))
         default = self._get_default(model, field_describe)
         if default is None:
             default = ""
-        comment = ""
-        if desc := field_describe.get("description"):
-            comment = self.schema_generator._column_comment_generator(
-                table=db_table,
-                column=db_column,
-                comment=desc,
-            )
         if modify:
             unique = ""
             template = self._MODIFY_COLUMN_TEMPLATE
@@ -129,10 +132,10 @@ class BaseDDL:
             template = self._ADD_COLUMN_TEMPLATE
         column = self.schema_generator._create_string(
             db_column=db_column,
-            field_type=db_field_types.get(self.DIALECT) or db_field_types.get(""),
+            field_type=str(db_field_types.get(self.DIALECT) or db_field_types.get("")),
             nullable="NOT NULL" if not field_describe.get("nullable") else "",
             unique=unique,
-            comment=comment,
+            comment=self._get_comment(db_table, field_describe, db_column=db_column),
             is_primary_key=is_pk,
             default=default,
         )
@@ -168,21 +171,23 @@ class BaseDDL:
             new_column_type=new_column_type,
         )
 
-    def add_index(self, model: "Type[Model]", field_names: List[str], unique=False) -> str:
+    def _index_name(self, unique: str, model, field_names: Iterable[str]) -> str:
+        """Generate index name for normal index key and unique index key"""
+        return self.schema_generator._generate_index_name(
+            "idx" if not unique else "uid", model, list(field_names)
+        )
+
+    def add_index(self, model: "Type[Model]", field_names: Iterable[str], unique=False) -> str:
         return self._ADD_INDEX_TEMPLATE.format(
             unique="UNIQUE " if unique else "",
-            index_name=self.schema_generator._generate_index_name(
-                "idx" if not unique else "uid", model, field_names
-            ),
+            index_name=self._index_name(unique, model, field_names),
             table_name=model._meta.db_table,
             column_names=", ".join(self.schema_generator.quote(f) for f in field_names),
         )
 
-    def drop_index(self, model: "Type[Model]", field_names: List[str], unique=False) -> str:
+    def drop_index(self, model: "Type[Model]", field_names: Iterable[str], unique=False) -> str:
         return self._DROP_INDEX_TEMPLATE.format(
-            index_name=self.schema_generator._generate_index_name(
-                "idx" if not unique else "uid", model, field_names
-            ),
+            index_name=self._index_name(unique, model, field_names),
             table_name=model._meta.db_table,
         )
 
@@ -190,6 +195,19 @@ class BaseDDL:
         return self._DROP_INDEX_TEMPLATE.format(
             index_name=index_name,
             table_name=model._meta.db_table,
+        )
+
+    def _fk_name(self, db_table, field_describe: dict, reference_table_describe: dict) -> str:
+        """Generate fk name"""
+        db_column = cast(str, field_describe.get("raw_field"))
+        pk_field = cast(dict, reference_table_describe.get("pk_field"))
+        to_field = cast(str, pk_field.get("db_column"))
+        to_table = cast(str, reference_table_describe.get("table"))
+        return self.schema_generator._generate_fk_name(
+            from_table=db_table,
+            from_field=db_column,
+            to_table=to_table,
+            to_field=to_field,
         )
 
     def add_fk(
@@ -200,15 +218,9 @@ class BaseDDL:
         db_column = field_describe.get("raw_field")
         pk_field = cast(dict, reference_table_describe.get("pk_field"))
         reference_id = pk_field.get("db_column")
-        fk_name = self.schema_generator._generate_fk_name(
-            from_table=db_table,
-            from_field=db_column,
-            to_table=reference_table_describe.get("table"),
-            to_field=pk_field.get("db_column"),
-        )
         return self._ADD_FK_TEMPLATE.format(
             table_name=db_table,
-            fk_name=fk_name,
+            fk_name=self._fk_name(db_table, field_describe, reference_table_describe),
             db_column=db_column,
             table=reference_table_describe.get("table"),
             field=reference_id,
@@ -219,15 +231,9 @@ class BaseDDL:
         self, model: "Type[Model]", field_describe: dict, reference_table_describe: dict
     ) -> str:
         db_table = model._meta.db_table
-        pk_field = cast(dict, reference_table_describe.get("pk_field"))
         return self._DROP_FK_TEMPLATE.format(
             table_name=db_table,
-            fk_name=self.schema_generator._generate_fk_name(
-                from_table=db_table,
-                from_field=field_describe.get("raw_field"),
-                to_table=reference_table_describe.get("table"),
-                to_field=pk_field.get("db_column"),
-            ),
+            fk_name=self._fk_name(db_table, field_describe, reference_table_describe),
         )
 
     def alter_column_default(self, model: "Type[Model]", field_describe: dict) -> str:

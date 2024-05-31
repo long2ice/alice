@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, cast
 
 from tortoise import Model
 from tortoise.backends.asyncpg.schema_generator import AsyncpgSchemaGenerator
@@ -28,7 +28,7 @@ class PostgresDDL(BaseDDL):
 
     def modify_column(self, model: "Type[Model]", field_describe: dict, is_pk: bool = False) -> str:
         db_table = model._meta.db_table
-        db_field_types = field_describe.get("db_field_types")
+        db_field_types = cast(dict, field_describe.get("db_field_types"))
         db_column = field_describe.get("db_column")
         datatype = db_field_types.get(self.DIALECT) or db_field_types.get("")
         return self._MODIFY_COLUMN_TEMPLATE.format(

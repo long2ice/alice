@@ -1,4 +1,3 @@
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -971,14 +970,13 @@ def test_sort_all_version_files(mocker):
     ]
 
 
-async def test_empty_migration(mocker) -> None:
+async def test_empty_migration(mocker, tmp_path: Path) -> None:
     mocker.patch("os.listdir", return_value=[])
     Migrate.app = "foo"
     expected_content = MIGRATE_TEMPLATE.format(upgrade_sql="", downgrade_sql="")
-    with tempfile.TemporaryDirectory() as temp_dir:
-        Migrate.migrate_location = temp_dir
+    Migrate.migrate_location = tmp_path
 
-        migration_file = await Migrate.migrate("update", True)
+    migration_file = await Migrate.migrate("update", True)
 
-        with open(Path(temp_dir, migration_file), "r") as f:
-            assert f.read() == expected_content
+    f = tmp_path / migration_file
+    assert f.read_text() == expected_content

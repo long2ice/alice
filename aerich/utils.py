@@ -3,7 +3,8 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Dict
+from types import ModuleType
+from typing import Dict, Optional
 
 from click import BadOptionUsage, ClickException, Context
 from tortoise import BaseDBAsyncClient, Tortoise
@@ -84,19 +85,19 @@ def get_models_describe(app: str) -> Dict:
     :return:
     """
     ret = {}
-    for model in Tortoise.apps.get(app).values():
+    for model in Tortoise.apps[app].values():
         describe = model.describe()
         ret[describe.get("name")] = describe
     return ret
 
 
-def is_default_function(string: str):
+def is_default_function(string: str) -> Optional[re.Match]:
     return re.match(r"^<function.+>$", str(string or ""))
 
 
-def import_py_file(file: Path):
+def import_py_file(file: Path) -> ModuleType:
     module_name, file_ext = os.path.splitext(os.path.split(file)[-1])
     spec = importlib.util.spec_from_file_location(module_name, file)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = importlib.util.module_from_spec(spec)  # type:ignore[arg-type]
+    spec.loader.exec_module(module)  # type:ignore[union-attr]
     return module
