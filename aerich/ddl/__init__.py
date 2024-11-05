@@ -6,6 +6,7 @@ from tortoise.backends.base.schema_generator import BaseSchemaGenerator
 
 from aerich.utils import is_default_function
 
+import json
 
 class BaseDDL:
     schema_generator_cls: Type[BaseSchemaGenerator] = BaseSchemaGenerator
@@ -89,10 +90,12 @@ class BaseDDL:
             if field_describe.get("field_type") in [
                 "UUIDField",
                 "TextField",
-                "JSONField",
+                # "JSONField",
             ] or is_default_function(default):
                 default = ""
             else:
+                if field_describe.get("field_type") == "JSONField":
+                    default = json.dumps(eval(default), separators=(",", ":"))
                 try:
                     default = self.schema_generator._column_default_generator(
                         db_table,
