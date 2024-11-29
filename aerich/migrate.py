@@ -420,14 +420,14 @@ class Migrate:
                         continue
                     old_data_field = cls.get_field_by_name(old_data_field_name, old_data_fields)
                     db_column = cast(str, old_data_field["db_column"])
-                    old_data_unique = old_data_field.get("unique")
                     cls._add_operator(
                         cls._remove_field(model, db_column),
                         upgrade,
                     )
                     if old_data_field["indexed"]:
+                        is_unique_field = old_data_field.get("unique")
                         cls._add_operator(
-                            cls._drop_index(model, {db_column}, old_data_unique),
+                            cls._drop_index(model, {db_column}, is_unique_field),
                             upgrade,
                             True,
                         )
