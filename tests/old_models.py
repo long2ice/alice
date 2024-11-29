@@ -51,6 +51,7 @@ class Category(Model):
 
 class Product(Model):
     categories: fields.ManyToManyRelation[Category] = fields.ManyToManyField("models.Category")
+    uid = fields.IntField(source_field="uuid", unique=True)
     name = fields.CharField(max_length=50)
     view_num = fields.IntField(description="View Num")
     sort = fields.IntField()
@@ -64,6 +65,7 @@ class Product(Model):
 
 
 class Config(Model):
+    name = fields.CharField(max_length=100, unique=True)
     label = fields.CharField(max_length=200)
     key = fields.CharField(max_length=20)
     value: dict = fields.JSONField()
