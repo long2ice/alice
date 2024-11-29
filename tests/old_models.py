@@ -66,7 +66,7 @@ class Product(Model):
 class Config(Model):
     label = fields.CharField(max_length=200)
     key = fields.CharField(max_length=20)
-    value = fields.JSONField()
+    value: dict = fields.JSONField()
     status: Status = fields.IntEnumField(Status, default=Status.on)
 
     class Meta:

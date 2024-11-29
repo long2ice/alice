@@ -18,6 +18,9 @@ jobs:
           POSTGRES_PASSWORD: 123456
           POSTGRES_USER: postgres
         options: --health-cmd=pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
       - name: Start MySQL
         run: sudo systemctl start mysql.service
@@ -30,7 +33,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: ${{ matrix.python-version }}
       - name: Install and configure Poetry
         run: |
           pip install -U pip poetry

@@ -22,8 +22,8 @@ asyncmy = { version = "^0.2.9", optional = true, allow-prereleases = true }
 pydantic = "^2.0"
 dictdiffer = "*"
 tomlkit = "*"
-
 asyncclick = "^8.1.7.2"
+
 [tool.poetry.group.dev.dependencies]
 ruff = "*"
 isort = "*"
@@ -64,6 +64,7 @@ asyncio_mode = 'auto'
 
 [tool.mypy]
 pretty = true
+python_version = "3.8"
 ignore_missing_imports = true
 
 [tool.ruff.lint]

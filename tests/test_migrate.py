@@ -819,7 +819,7 @@ def test_migrate(mocker: MockerFixture):
     - alter default: Config.status
     - rename column: Product.image -> Product.pic
     """
-    mocker.patch("click.prompt", side_effect=(True,))
+    mocker.patch("asyncclick.prompt", side_effect=(True,))
 
     models_describe = get_models_describe("models")
     Migrate.app = "models"

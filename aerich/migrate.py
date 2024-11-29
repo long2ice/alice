@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Type, Union, cast
 
-import click
+import asyncclick as click
 from dictdiffer import diff
 from tortoise import BaseDBAsyncClient, Model, Tortoise
 from tortoise.exceptions import OperationalError
@@ -192,7 +192,7 @@ class Migrate:
         ret: list = []
 
         def index_hash(self) -> str:
-            h = hashlib.new("MD5", usedforsecurity=False)
+            h = hashlib.new("MD5", usedforsecurity=False)  # type:ignore[call-arg]
             h.update(
                 self.index_name(cls.ddl.schema_generator, model).encode()
                 + self.__class__.__name__.encode()
