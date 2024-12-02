@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Type, Union, cast
 
-import click
+import asyncclick as click
 from dictdiffer import diff
 from tortoise import BaseDBAsyncClient, Model, Tortoise
 from tortoise.exceptions import OperationalError
@@ -192,7 +192,7 @@ class Migrate:
         ret: list = []
 
         def index_hash(self) -> str:
-            h = hashlib.new("MD5", usedforsecurity=False)
+            h = hashlib.new("MD5", usedforsecurity=False)  # type:ignore[call-arg]
             h.update(
                 self.index_name(cls.ddl.schema_generator, model).encode()
                 + self.__class__.__name__.encode()
@@ -420,14 +420,14 @@ class Migrate:
                         continue
                     old_data_field = cls.get_field_by_name(old_data_field_name, old_data_fields)
                     db_column = cast(str, old_data_field["db_column"])
-                    old_data_unique = old_data_field.get("unique")
                     cls._add_operator(
                         cls._remove_field(model, db_column),
                         upgrade,
                     )
                     if old_data_field["indexed"]:
+                        is_unique_field = old_data_field.get("unique")
                         cls._add_operator(
-                            cls._drop_index(model, {db_column}, old_data_unique),
+                            cls._drop_index(model, {db_column}, is_unique_field),
                             upgrade,
                             True,
                         )
@@ -549,16 +549,17 @@ class Migrate:
     def _resolve_fk_fields_name(cls, model: Type[Model], fields_name: Iterable[str]) -> List[str]:
         ret = []
         for field_name in fields_name:
-            field = model._meta.fields_map.get(field_name)
-            if not field:
-                ret.append(field_name)
-                continue
-            if field.source_field:
-                ret.append(field.source_field)
-            elif field_name in model._meta.fk_fields:
-                ret.append(field_name + "_id")
+            try:
+                field = model._meta.fields_map[field_name]
+            except KeyError:
+                # field dropped or to be add
+                pass
             else:
-                ret.append(field_name)
+                if field.source_field:
+                    field_name = field.source_field
+                elif field_name in model._meta.fk_fields:
+                    field_name += "_id"
+            ret.append(field_name)
         return ret
 
     @classmethod
