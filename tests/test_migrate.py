@@ -857,8 +857,10 @@ def test_migrate(mocker: MockerFixture):
     if isinstance(Migrate.ddl, SqliteDDL):
         with pytest.raises(NotSupportError):
             Migrate.diff_models(old_models_describe, models_describe)
+        Migrate.upgrade_operators.clear()
         with pytest.raises(NotSupportError):
             Migrate.diff_models(models_describe, old_models_describe, False)
+        Migrate.downgrade_operators.clear()
     else:
         Migrate.diff_models(old_models_describe, models_describe)
         Migrate.diff_models(models_describe, old_models_describe, False)
