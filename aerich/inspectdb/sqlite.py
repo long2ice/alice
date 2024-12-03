@@ -1,11 +1,11 @@
-from typing import Callable, Dict, List
+from __future__ import annotations
 
-from aerich.inspectdb import Column, Inspect
+from aerich.inspectdb import Column, FieldMapDict, Inspect
 
 
 class InspectSQLite(Inspect):
     @property
-    def field_map(self) -> Dict[str, Callable[..., str]]:
+    def field_map(self) -> FieldMapDict:
         return {
             "INTEGER": self.int_field,
             "INT": self.bool_field,
@@ -21,7 +21,7 @@ class InspectSQLite(Inspect):
             "BLOB": self.binary_field,
         }
 
-    async def get_columns(self, table: str) -> List[Column]:
+    async def get_columns(self, table: str) -> list[Column]:
         columns = []
         sql = f"PRAGMA table_info({table})"
         ret = await self.conn.execute_query_dict(sql)
@@ -45,7 +45,7 @@ class InspectSQLite(Inspect):
             )
         return columns
 
-    async def _get_columns_index(self, table: str) -> Dict[str, str]:
+    async def _get_columns_index(self, table: str) -> dict[str, str]:
         sql = f"PRAGMA index_list ({table})"
         indexes = await self.conn.execute_query_dict(sql)
         ret = {}
@@ -55,7 +55,7 @@ class InspectSQLite(Inspect):
             ret[index_info["name"]] = "unique" if index["unique"] else "index"
         return ret
 
-    async def get_all_tables(self) -> List[str]:
+    async def get_all_tables(self) -> list[str]:
         sql = "select tbl_name from sqlite_master where type='table' and name!='sqlite_sequence'"
         ret = await self.conn.execute_query_dict(sql)
         return list(map(lambda x: x["tbl_name"], ret))

@@ -1,18 +1,20 @@
-from typing import TYPE_CHECKING, List, Optional
+from __future__ import annotations
 
-from aerich.inspectdb import Column, Inspect
+from typing import TYPE_CHECKING
+
+from aerich.inspectdb import Column, FieldMapDict, Inspect
 
 if TYPE_CHECKING:
     from tortoise.backends.base_postgres.client import BasePostgresClient
 
 
 class InspectPostgres(Inspect):
-    def __init__(self, conn: "BasePostgresClient", tables: Optional[List[str]] = None) -> None:
+    def __init__(self, conn: "BasePostgresClient", tables: list[str] | None = None) -> None:
         super().__init__(conn, tables)
         self.schema = conn.server_settings.get("schema") or "public"
 
     @property
-    def field_map(self) -> dict:
+    def field_map(self) -> FieldMapDict:
         return {
             "int4": self.int_field,
             "int8": self.int_field,
@@ -34,12 +36,12 @@ class InspectPostgres(Inspect):
             "timestamp": self.datetime_field,
         }
 
-    async def get_all_tables(self) -> List[str]:
+    async def get_all_tables(self) -> list[str]:
         sql = "select TABLE_NAME from information_schema.TABLES where table_catalog=$1 and table_schema=$2"
         ret = await self.conn.execute_query_dict(sql, [self.database, self.schema])
         return list(map(lambda x: x["table_name"], ret))
 
-    async def get_columns(self, table: str) -> List[Column]:
+    async def get_columns(self, table: str) -> list[Column]:
         columns = []
         sql = f"""select c.column_name,
        col_description('public.{table}'::regclass, ordinal_position) as column_comment,

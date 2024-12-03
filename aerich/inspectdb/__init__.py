@@ -1,7 +1,22 @@
-from typing import Any, List, Optional
+from __future__ import annotations
+
+from typing import Any, Callable, Dict, Optional, TypedDict
 
 from pydantic import BaseModel
 from tortoise import BaseDBAsyncClient
+
+
+class ColumnInfoDict(TypedDict):
+    name: str
+    pk: str
+    index: str
+    null: str
+    default: str
+    length: str
+    comment: str
+
+
+FieldMapDict = Dict[str, Callable[..., str]]
 
 
 class Column(BaseModel):
@@ -18,7 +33,7 @@ class Column(BaseModel):
     decimal_places: Optional[int] = None
     max_digits: Optional[int] = None
 
-    def translate(self) -> dict:
+    def translate(self) -> ColumnInfoDict:
         comment = default = length = index = null = pk = ""
         if self.pk:
             pk = "pk=True, "
@@ -28,23 +43,24 @@ class Column(BaseModel):
             else:
                 if self.index:
                     index = "index=True, "
-        if self.data_type in ["varchar", "VARCHAR"]:
+        if self.data_type in ("varchar", "VARCHAR"):
             length = f"max_length={self.length}, "
-        if self.data_type in ["decimal", "numeric"]:
+        elif self.data_type in ("decimal", "numeric"):
             length_parts = []
             if self.max_digits:
                 length_parts.append(f"max_digits={self.max_digits}")
             if self.decimal_places:
                 length_parts.append(f"decimal_places={self.decimal_places}")
-            length = ", ".join(length_parts)+", "
+            if length_parts:
+                length = ", ".join(length_parts) + ", "
         if self.null:
             null = "null=True, "
         if self.default is not None:
-            if self.data_type in ["tinyint", "INT"]:
+            if self.data_type in ("tinyint", "INT"):
                 default = f"default={'True' if self.default == '1' else 'False'}, "
             elif self.data_type == "bool":
                 default = f"default={'True' if self.default == 'true' else 'False'}, "
-            elif self.data_type in ["datetime", "timestamptz", "TIMESTAMP"]:
+            elif self.data_type in ("datetime", "timestamptz", "TIMESTAMP"):
                 if "CURRENT_TIMESTAMP" == self.default:
                     if "DEFAULT_GENERATED on update CURRENT_TIMESTAMP" == self.extra:
                         default = "auto_now=True, "
@@ -76,7 +92,7 @@ class Column(BaseModel):
 class Inspect:
     _table_template = "class {table}(Model):\n"
 
-    def __init__(self, conn: BaseDBAsyncClient, tables: Optional[List[str]] = None):
+    def __init__(self, conn: BaseDBAsyncClient, tables: list[str] | None = None) -> None:
         self.conn = conn
         try:
             self.database = conn.database  # type:ignore[attr-defined]
@@ -85,7 +101,7 @@ class Inspect:
         self.tables = tables
 
     @property
-    def field_map(self) -> dict:
+    def field_map(self) -> FieldMapDict:
         raise NotImplementedError
 
     async def inspect(self) -> str:
@@ -103,10 +119,10 @@ class Inspect:
             tables.append(model + "\n".join(fields))
         return result + "\n\n\n".join(tables)
 
-    async def get_columns(self, table: str) -> List[Column]:
+    async def get_columns(self, table: str) -> list[Column]:
         raise NotImplementedError
 
-    async def get_all_tables(self) -> List[str]:
+    async def get_all_tables(self) -> list[str]:
         raise NotImplementedError
 
     @classmethod
