@@ -864,7 +864,7 @@ def test_migrate(mocker: MockerFixture):
     else:
         Migrate.diff_models(old_models_describe, models_describe)
         Migrate.diff_models(models_describe, old_models_describe, False)
-    Migrate._merge_operators()
+        Migrate._merge_operators()
     if isinstance(Migrate.ddl, MysqlDDL):
         expected_upgrade_operators = {
             "ALTER TABLE `category` MODIFY COLUMN `name` VARCHAR(200)",
