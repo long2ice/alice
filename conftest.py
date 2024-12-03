@@ -7,6 +7,7 @@ from tortoise import Tortoise, expand_db_url, generate_schema_for_client
 from tortoise.backends.asyncpg.schema_generator import AsyncpgSchemaGenerator
 from tortoise.backends.mysql.schema_generator import MySQLSchemaGenerator
 from tortoise.backends.sqlite.schema_generator import SqliteSchemaGenerator
+from tortoise.exceptions import DBConnectionError, OperationalError
 
 from aerich.ddl.mysql import MysqlDDL
 from aerich.ddl.postgres import PostgresDDL
@@ -53,6 +54,13 @@ def event_loop() -> Generator:
 
 @pytest.fixture(scope="session", autouse=True)
 async def initialize_tests(event_loop, request) -> None:
+    # Placing init outside the try block since it doesn't
+    # establish connections to the DB eagerly.
+    await Tortoise.init(config=tortoise_orm)
+    try:
+        await Tortoise._drop_databases()
+    except (DBConnectionError, OperationalError):
+        pass
     await Tortoise.init(config=tortoise_orm, _create_db=True)
     await generate_schema_for_client(Tortoise.get_connection("default"), safe=True)
 
