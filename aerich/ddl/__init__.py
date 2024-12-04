@@ -40,7 +40,9 @@ class BaseDDL:
         self.schema_generator = self.schema_generator_cls(client)
 
     def create_table(self, model: "Type[Model]"):
-        return self.schema_generator._get_table_sql(model, True)["table_creation_string"]
+        return self.schema_generator._get_table_sql(model, True)["table_creation_string"].rstrip(
+            ";"
+        )
 
     def drop_table(self, table_name: str):
         return self._DROP_TABLE_TEMPLATE.format(table_name=table_name)

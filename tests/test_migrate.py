@@ -829,7 +829,7 @@ def test_migrate(mocker: MockerFixture):
             "ALTER TABLE `user` MODIFY COLUMN `longitude` DECIMAL(10,8) NOT NULL",
             "ALTER TABLE `user` ADD UNIQUE INDEX `uid_user_usernam_9987ab` (`username`)",
             "CREATE TABLE `email_user` (\n    `email_id` INT NOT NULL REFERENCES `email` (`email_id`) ON DELETE CASCADE,\n    `user_id` INT NOT NULL REFERENCES `user` (`id`) ON DELETE CASCADE\n) CHARACTER SET utf8mb4",
-            "CREATE TABLE IF NOT EXISTS `newmodel` (\n    `id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,\n    `name` VARCHAR(50) NOT NULL\n) CHARACTER SET utf8mb4;",
+            "CREATE TABLE IF NOT EXISTS `newmodel` (\n    `id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,\n    `name` VARCHAR(50) NOT NULL\n) CHARACTER SET utf8mb4",
             "ALTER TABLE `category` MODIFY COLUMN `created_at` DATETIME(6) NOT NULL  DEFAULT CURRENT_TIMESTAMP(6)",
             "ALTER TABLE `product` MODIFY COLUMN `body` LONGTEXT NOT NULL",
             "ALTER TABLE `email` MODIFY COLUMN `is_primary` BOOL NOT NULL  DEFAULT 0",
@@ -901,7 +901,7 @@ def test_migrate(mocker: MockerFixture):
             'CREATE INDEX "idx_product_name_869427" ON "product" ("name", "type_db_alias")',
             'CREATE INDEX "idx_email_email_4a1a33" ON "email" ("email")',
             'CREATE TABLE "email_user" (\n    "email_id" INT NOT NULL REFERENCES "email" ("email_id") ON DELETE CASCADE,\n    "user_id" INT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE\n)',
-            'CREATE TABLE IF NOT EXISTS "newmodel" (\n    "id" SERIAL NOT NULL PRIMARY KEY,\n    "name" VARCHAR(50) NOT NULL\n);\nCOMMENT ON COLUMN "config"."user_id" IS \'User\';',
+            'CREATE TABLE IF NOT EXISTS "newmodel" (\n    "id" SERIAL NOT NULL PRIMARY KEY,\n    "name" VARCHAR(50) NOT NULL\n);\nCOMMENT ON COLUMN "config"."user_id" IS \'User\'',
             'CREATE UNIQUE INDEX "uid_product_name_869427" ON "product" ("name", "type_db_alias")',
             'CREATE UNIQUE INDEX "uid_user_usernam_9987ab" ON "user" ("username")',
         }

@@ -17,7 +17,7 @@ def test_create_table():
     `created_at` DATETIME(6) NOT NULL  DEFAULT CURRENT_TIMESTAMP(6),
     `user_id` INT NOT NULL COMMENT 'User',
     CONSTRAINT `fk_category_user_e2e3874c` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
-) CHARACTER SET utf8mb4;"""
+) CHARACTER SET utf8mb4"""
         )
 
     elif isinstance(Migrate.ddl, SqliteDDL):
@@ -29,7 +29,7 @@ def test_create_table():
     "name" VARCHAR(200),
     "created_at" TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP,
     "user_id" INT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE /* User */
-);"""
+)"""
         )
 
     elif isinstance(Migrate.ddl, PostgresDDL):
@@ -42,7 +42,7 @@ def test_create_table():
     "created_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,
     "user_id" INT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE
 );
-COMMENT ON COLUMN "category"."user_id" IS 'User';"""
+COMMENT ON COLUMN "category"."user_id" IS 'User'"""
         )
 
 

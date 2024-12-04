@@ -281,8 +281,18 @@ class Migrate:
                 # remove indexes
                 for index in old_indexes.difference(new_indexes):
                     cls._add_operator(cls._drop_index(model, index, False), upgrade, True)
-                old_data_fields = old_model_describe.get("data_fields")
-                new_data_fields = new_model_describe.get("data_fields")
+                old_data_fields = list(
+                    filter(
+                        lambda x: x.get("db_field_types") is not None,
+                        old_model_describe.get("data_fields"),
+                    )
+                )
+                new_data_fields = list(
+                    filter(
+                        lambda x: x.get("db_field_types") is not None,
+                        new_model_describe.get("data_fields"),
+                    )
+                )
 
                 old_data_fields_name = list(map(lambda x: x.get("name"), old_data_fields))
                 new_data_fields_name = list(map(lambda x: x.get("name"), new_data_fields))
@@ -438,6 +448,7 @@ class Migrate:
                         filter(lambda x: x.get("name") == field_name, new_data_fields)
                     )
                     changes = diff(old_data_field, new_data_field)
+                    modified = False
                     for change in changes:
                         _, option, old_new = change
                         if option == "indexed":
@@ -475,11 +486,14 @@ class Migrate:
                             # change nullable
                             cls._add_operator(cls._alter_null(model, new_data_field), upgrade)
                         else:
+                            if modified:
+                                continue
                             # modify column
                             cls._add_operator(
                                 cls._modify_field(model, new_data_field),
                                 upgrade,
                             )
+                            modified = True
 
         for old_model in old_models:
             if old_model not in new_models.keys():
