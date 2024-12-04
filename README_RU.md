@@ -1,38 +1,37 @@
 # Aerich
-
+ 
 [![image](https://img.shields.io/pypi/v/aerich.svg?style=flat)](https://pypi.python.org/pypi/aerich)
 [![image](https://img.shields.io/github/license/tortoise/aerich)](https://github.com/tortoise/aerich)
 [![image](https://github.com/tortoise/aerich/workflows/pypi/badge.svg)](https://github.com/tortoise/aerich/actions?query=workflow:pypi)
 [![image](https://github.com/tortoise/aerich/workflows/ci/badge.svg)](https://github.com/tortoise/aerich/actions?query=workflow:ci)
+ 
+[English](./README.md) | Русский
 
-English | [Русский](./README_RU.md)
-
-## Introduction
-
-Aerich is a database migrations tool for TortoiseORM, which is like alembic for SQLAlchemy, or like Django ORM with
-it\'s own migration solution.
-
-## Install
-
-Just install from pypi:
-
+## Введение
+ 
+Aerich - это инструмент для миграции базы данных для TortoiseORM, который аналогичен Alembic для SQLAlchemy или встроенному решению миграций в Django ORM.
+ 
+## Установка
+ 
+Просто установите из pypi:
+ 
 ```shell
 pip install aerich
 ```
-
-## Quick Start
-
+ 
+## Быстрый старт
+ 
 ```shell
 > aerich -h
-
+ 
 Usage: aerich [OPTIONS] COMMAND [ARGS]...
-
+ 
 Options:
   -V, --version      Show the version and exit.
   -c, --config TEXT  Config file.  [default: pyproject.toml]
   --app TEXT         Tortoise-ORM app name.
   -h, --help         Show this message and exit.
-
+ 
 Commands:
   downgrade  Downgrade to specified version.
   heads      Show current available heads in migrate location.
@@ -43,11 +42,11 @@ Commands:
   migrate    Generate migrate changes file.
   upgrade    Upgrade to specified version.
 ```
-
-## Usage
-
-You need to add `aerich.models` to your `Tortoise-ORM` config first. Example:
-
+ 
+## Использование
+ 
+Сначала вам нужно добавить aerich.models в конфигурацию вашего Tortoise-ORM. Пример:
+ 
 ```python
 TORTOISE_ORM = {
     "connections": {"default": "mysql://root:123456@127.0.0.1:3306/test"},
@@ -59,16 +58,16 @@ TORTOISE_ORM = {
     },
 }
 ```
-
-### Initialization
-
+ 
+### Инициализация
+ 
 ```shell
 > aerich init -h
-
+ 
 Usage: aerich init [OPTIONS]
-
+ 
   Init config file and generate root migrate location.
-
+ 
 Options:
   -t, --tortoise-orm TEXT  Tortoise-ORM config module dict variable, like
                            settings.TORTOISE_ORM.  [required]
@@ -76,131 +75,123 @@ Options:
   -s, --src_folder TEXT    Folder of the source, relative to the project root.
   -h, --help               Show this message and exit.
 ```
-
-Initialize the config file and migrations location:
-
+ 
+Инициализируйте файл конфигурации и задайте местоположение миграций:
+ 
 ```shell
 > aerich init -t tests.backends.mysql.TORTOISE_ORM
-
+ 
 Success create migrate location ./migrations
 Success write config to pyproject.toml
 ```
-
-### Init db
-
+ 
+### Инициализация базы данных
+ 
 ```shell
 > aerich init-db
-
+ 
 Success create app migrate location ./migrations/models
 Success generate schema for app "models"
 ```
-
-If your Tortoise-ORM app is not the default `models`, you must specify the correct app via `--app`,
-e.g. `aerich --app other_models init-db`.
-
-### Update models and make migrate
-
+ 
+Если ваше приложение Tortoise-ORM не является приложением по умолчанию с именем models, вы должны указать правильное имя приложения с помощью параметра --app, например: aerich --app other_models init-db.
+ 
+### Обновление моделей и создание миграции
+ 
 ```shell
 > aerich migrate --name drop_column
-
+ 
 Success migrate 1_202029051520102929_drop_column.py
 ```
-
-Format of migrate filename is
-`{version_num}_{datetime}_{name|update}.py`.
-
-If `aerich` guesses you are renaming a column, it will ask `Rename {old_column} to {new_column} [True]`. You can choose
-`True` to rename column without column drop, or choose `False` to drop the column then create. Note that the latter may
-lose data.
-
-If you need to manually write migration, you could generate empty file:
-
-```shell
-> aerich migrate --name add_index --empty
-
-Success migrate 1_202326122220101229_add_index.py
-```
-
-### Upgrade to latest version
-
+ 
+Формат имени файла миграции следующий: `{версия}_{дата_и_время}_{имя|обновление}.py`.
+ 
+Если aerich предполагает, что вы переименовываете столбец, он спросит: 
+Переименовать `{старый_столбец} в {новый_столбец} [True]`. Вы можете выбрать `True`,
+чтобы переименовать столбец без удаления столбца, или выбрать `False`, чтобы удалить столбец,
+а затем создать новый. Обратите внимание, что последний вариант может привести к потере данных.
+ 
+ 
+### Обновление до последней версии
+ 
 ```shell
 > aerich upgrade
-
+ 
 Success upgrade 1_202029051520102929_drop_column.py
 ```
-
-Now your db is migrated to latest.
-
-### Downgrade to specified version
-
+ 
+Теперь ваша база данных обновлена до последней версии.
+ 
+### Откат до указанной версии
+ 
 ```shell
 > aerich downgrade -h
-
+ 
 Usage: aerich downgrade [OPTIONS]
-
+ 
   Downgrade to specified version.
-
+ 
 Options:
   -v, --version INTEGER  Specified version, default to last.  [default: -1]
   -d, --delete           Delete version files at the same time.  [default:
                          False]
-
+ 
   --yes                  Confirm the action without prompting.
   -h, --help             Show this message and exit.
 ```
-
+ 
 ```shell
 > aerich downgrade
-
+ 
 Success downgrade 1_202029051520102929_drop_column.py
 ```
-
-Now your db is rolled back to the specified version.
-
-### Show history
-
+ 
+Теперь ваша база данных откатилась до указанной версии.
+ 
+### Показать историю
+ 
 ```shell
 > aerich history
-
+ 
 1_202029051520102929_drop_column.py
 ```
-
-### Show heads to be migrated
-
+ 
+### Чтобы узнать, какие миграции должны быть применены, можно использовать команду:
+ 
 ```shell
 > aerich heads
-
+ 
 1_202029051520102929_drop_column.py
 ```
-
-### Inspect db tables to TortoiseORM model
-
-Currently `inspectdb` support MySQL & Postgres & SQLite.
-
+ 
+### Осмотр таблиц базы данных для модели TortoiseORM
+ 
+В настоящее время inspectdb поддерживает MySQL, Postgres и SQLite.
+ 
 ```shell
 Usage: aerich inspectdb [OPTIONS]
-
+ 
   Introspects the database tables to standard output as TortoiseORM model.
-
+ 
 Options:
   -t, --table TEXT  Which tables to inspect.
   -h, --help        Show this message and exit.
 ```
-
-Inspect all tables and print to console:
-
+ 
+Посмотреть все таблицы и вывести их на консоль:
+ 
 ```shell
 aerich --app models inspectdb
 ```
-
-Inspect a specified table in the default app and redirect to `models.py`:
-
+ 
+Осмотреть указанную таблицу в приложении по умолчанию и перенаправить в models.py:
+ 
 ```shell
 aerich inspectdb -t user > models.py
 ```
-
-For example, you table is:
-
+ 
+Например, ваша таблица выглядит следующим образом:
+ 
 ```sql
 CREATE TABLE `test`
 (
@@ -218,13 +209,13 @@ CREATE TABLE `test`
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_general_ci
 ```
-
-Now run `aerich inspectdb -t test` to see the generated model:
-
+ 
+Теперь выполните команду aerich inspectdb -t test, чтобы увидеть сгенерированную модель:
+ 
 ```python
 from tortoise import Model, fields
-
-
+ 
+ 
 class Test(Model):
     date = fields.DateField(null=True, )
     datetime = fields.DatetimeField(auto_now=True, )
@@ -235,11 +226,11 @@ class Test(Model):
     time = fields.TimeField(null=True, )
     tinyint = fields.BooleanField(null=True, )
 ```
-
-Note that this command is limited and can't infer some fields, such as `IntEnumField`, `ForeignKeyField`, and others.
-
-### Multiple databases
-
+ 
+Обратите внимание, что эта команда имеет ограничения и не может автоматически определить некоторые поля, такие как `IntEnumField`, `ForeignKeyField` и другие.
+ 
+### Несколько баз данных
+ 
 ```python
 tortoise_orm = {
     "connections": {
@@ -252,33 +243,32 @@ tortoise_orm = {
     },
 }
 ```
-
-You only need to specify `aerich.models` in one app, and must specify `--app` when running `aerich migrate` and so on.
-
-## Restore `aerich` workflow
-
-In some cases, such as broken changes from upgrade of `aerich`, you can't run `aerich migrate` or `aerich upgrade`, you
-can make the following steps:
-
-1. drop `aerich` table.
-2. delete `migrations/{app}` directory.
+ 
+Вам нужно указать `aerich.models` только в одном приложении и должны указывать `--app` при запуске команды `aerich migrate` и т.д.
+ 
+## Восстановление рабочего процесса aerich
+ 
+В некоторых случаях, например, при возникновении проблем после обновления `aerich`, вы не можете запустить `aerich migrate` или `aerich upgrade`. В таком случае вы можете выполнить следующие шаги:
+ 
+1. удалите таблицы `aerich`.
+2. удалите директорию `migrations/{app}`.
 3. rerun `aerich init-db`.
-
-Note that these actions is safe, also you can do that to reset your migrations if your migration files is too many.
-
-## Use `aerich` in application
-
-You can use `aerich` out of cli by use `Command` class.
-
+ 
+Обратите внимание, что эти действия безопасны, и вы можете использовать их для сброса миграций, если у вас слишком много файлов миграции.
+ 
+## Использование aerich в приложении
+ 
+Вы можете использовать `aerich` вне командной строки, используя класс `Command`.
+ 
 ```python
 from aerich import Command
-
+ 
 command = Command(tortoise_config=config, app='models')
 await command.init()
 await command.migrate('test')
 ```
-
-## License
-
-This project is licensed under the
-[Apache-2.0](https://github.com/long2ice/aerich/blob/master/LICENSE) License.
+ 
+## Лицензия
+ 
+Этот проект лицензирован в соответствии с лицензией
+[Apache-2.0](https://github.com/long2ice/aerich/blob/master/LICENSE) Лицензия.

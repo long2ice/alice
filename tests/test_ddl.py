@@ -14,6 +14,7 @@ def test_create_table():
     `id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     `slug` VARCHAR(100) NOT NULL,
     `name` VARCHAR(200),
+    `title` VARCHAR(20) NOT NULL,
     `created_at` DATETIME(6) NOT NULL  DEFAULT CURRENT_TIMESTAMP(6),
     `user_id` INT NOT NULL COMMENT 'User',
     CONSTRAINT `fk_category_user_e2e3874c` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
@@ -27,6 +28,7 @@ def test_create_table():
     "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     "slug" VARCHAR(100) NOT NULL,
     "name" VARCHAR(200),
+    "title" VARCHAR(20) NOT NULL,
     "created_at" TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP,
     "user_id" INT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE /* User */
 )"""
@@ -39,6 +41,7 @@ def test_create_table():
     "id" SERIAL NOT NULL PRIMARY KEY,
     "slug" VARCHAR(100) NOT NULL,
     "name" VARCHAR(200),
+    "title" VARCHAR(20) NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,
     "user_id" INT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE
 );
@@ -151,9 +154,7 @@ def test_add_index():
     index_u = Migrate.ddl.add_index(Category, ["name"], True)
     if isinstance(Migrate.ddl, MysqlDDL):
         assert index == "ALTER TABLE `category` ADD INDEX `idx_category_name_8b0cb9` (`name`)"
-        assert (
-            index_u == "ALTER TABLE `category` ADD UNIQUE INDEX `uid_category_name_8b0cb9` (`name`)"
-        )
+        assert index_u == "ALTER TABLE `category` ADD UNIQUE INDEX `name` (`name`)"
     elif isinstance(Migrate.ddl, PostgresDDL):
         assert index == 'CREATE INDEX "idx_category_name_8b0cb9" ON "category" ("name")'
         assert index_u == 'CREATE UNIQUE INDEX "uid_category_name_8b0cb9" ON "category" ("name")'
@@ -169,7 +170,7 @@ def test_drop_index():
     ret_u = Migrate.ddl.drop_index(Category, ["name"], True)
     if isinstance(Migrate.ddl, MysqlDDL):
         assert ret == "ALTER TABLE `category` DROP INDEX `idx_category_name_8b0cb9`"
-        assert ret_u == "ALTER TABLE `category` DROP INDEX `uid_category_name_8b0cb9`"
+        assert ret_u == "ALTER TABLE `category` DROP INDEX `name`"
     elif isinstance(Migrate.ddl, PostgresDDL):
         assert ret == 'DROP INDEX "idx_category_name_8b0cb9"'
         assert ret_u == 'DROP INDEX "uid_category_name_8b0cb9"'

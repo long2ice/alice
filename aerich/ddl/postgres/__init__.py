@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, cast
 
 from tortoise import Model
 from tortoise.backends.asyncpg.schema_generator import AsyncpgSchemaGenerator
@@ -18,7 +18,7 @@ class PostgresDDL(BaseDDL):
     _SET_COMMENT_TEMPLATE = 'COMMENT ON COLUMN "{table_name}"."{column}" IS {comment}'
     _DROP_FK_TEMPLATE = 'ALTER TABLE "{table_name}" DROP CONSTRAINT "{fk_name}"'
 
-    def alter_column_null(self, model: "Type[Model]", field_describe: dict):
+    def alter_column_null(self, model: "Type[Model]", field_describe: dict) -> str:
         db_table = model._meta.db_table
         return self._ALTER_NULL_TEMPLATE.format(
             table_name=db_table,
@@ -26,9 +26,9 @@ class PostgresDDL(BaseDDL):
             set_drop="DROP" if field_describe.get("nullable") else "SET",
         )
 
-    def modify_column(self, model: "Type[Model]", field_describe: dict, is_pk: bool = False):
+    def modify_column(self, model: "Type[Model]", field_describe: dict, is_pk: bool = False) -> str:
         db_table = model._meta.db_table
-        db_field_types = field_describe.get("db_field_types")
+        db_field_types = cast(dict, field_describe.get("db_field_types"))
         db_column = field_describe.get("db_column")
         datatype = db_field_types.get(self.DIALECT) or db_field_types.get("")
         return self._MODIFY_COLUMN_TEMPLATE.format(
@@ -38,12 +38,14 @@ class PostgresDDL(BaseDDL):
             using=f' USING "{db_column}"::{datatype}',
         )
 
-    def set_comment(self, model: "Type[Model]", field_describe: dict):
+    def set_comment(self, model: "Type[Model]", field_describe: dict) -> str:
         db_table = model._meta.db_table
         return self._SET_COMMENT_TEMPLATE.format(
             table_name=db_table,
             column=field_describe.get("db_column") or field_describe.get("raw_field"),
-            comment="'{}'".format(field_describe.get("description"))
-            if field_describe.get("description")
-            else "NULL",
+            comment=(
+                "'{}'".format(field_describe.get("description"))
+                if field_describe.get("description")
+                else "NULL"
+            ),
         )
