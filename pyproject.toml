@@ -67,5 +67,7 @@ pretty = true
 python_version = "3.8"
 ignore_missing_imports = true
 
+[tool.ruff]
+line-length = 100
 [tool.ruff.lint]
 ignore = ['E501']
