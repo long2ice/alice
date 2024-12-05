@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from typing import Any, Callable, Dict, Optional, TypedDict
 
 from pydantic import BaseModel
@@ -61,8 +62,8 @@ class Column(BaseModel):
             elif self.data_type == "bool":
                 default = f"default={'True' if self.default == 'true' else 'False'}, "
             elif self.data_type in ("datetime", "timestamptz", "TIMESTAMP"):
-                if "CURRENT_TIMESTAMP" == self.default:
-                    if "DEFAULT_GENERATED on update CURRENT_TIMESTAMP" == self.extra:
+                if self.default == "CURRENT_TIMESTAMP":
+                    if self.extra == "DEFAULT_GENERATED on update CURRENT_TIMESTAMP":
                         default = "auto_now=True, "
                     else:
                         default = "auto_now_add=True, "
@@ -94,10 +95,8 @@ class Inspect:
 
     def __init__(self, conn: BaseDBAsyncClient, tables: list[str] | None = None) -> None:
         self.conn = conn
-        try:
+        with contextlib.suppress(AttributeError):
             self.database = conn.database  # type:ignore[attr-defined]
-        except AttributeError:
-            pass
         self.tables = tables
 
     @property

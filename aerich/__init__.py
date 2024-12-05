@@ -42,7 +42,7 @@ class Command:
     async def _upgrade(self, conn, version_file) -> None:
         file_path = Path(Migrate.migrate_location, version_file)
         m = import_py_file(file_path)
-        upgrade = getattr(m, "upgrade")
+        upgrade = m.upgrade
         await conn.execute_script(await upgrade(conn))
         await Aerich.create(
             version=version_file,
@@ -89,7 +89,7 @@ class Command:
             ) as conn:
                 file_path = Path(Migrate.migrate_location, file)
                 m = import_py_file(file_path)
-                downgrade = getattr(m, "downgrade")
+                downgrade = m.downgrade
                 downgrade_sql = await downgrade(conn)
                 if not downgrade_sql.strip():
                     raise DowngradeError("No downgrade items found")
