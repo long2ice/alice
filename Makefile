@@ -14,13 +14,20 @@ up:
 deps:
 	@poetry install -E asyncpg -E asyncmy
 
-style: deps
+_style:
 	@isort -src $(checkfiles)
 	@black $(black_opts) $(checkfiles)
+style: deps _style
 
-check: deps
+_check:
 	@black --check $(black_opts) $(checkfiles) || (echo "Please run 'make style' to auto-fix style issues" && false)
-	@pflake8 $(checkfiles)
+	@ruff check $(checkfiles)
+	@mypy $(checkfiles)
+ifneq ($(shell python -c 'import sys;is_py38=sys.version_info<(3,9);rc=int(is_py38);sys.exit(rc)'),)
+	# Run bandit with Python3.9+, as the `usedforsecurity=...` parameter of `hashlib.new` is only added from Python 3.9 onwards.
+	@bandit -r aerich
+endif
+check: deps _check
 
 test: deps
 	$(py_warn) TEST_DB=sqlite://:memory: py.test
@@ -34,9 +41,10 @@ test_mysql:
 test_postgres:
 	$(py_warn) TEST_DB="postgres://postgres:$(POSTGRES_PASS)@$(POSTGRES_HOST):$(POSTGRES_PORT)/test_\{\}" pytest -vv -s
 
-testall: deps test_sqlite test_postgres test_mysql
+_testall: test_sqlite test_postgres test_mysql
+testall: deps _testall
 
 build: deps
 	@poetry build
 
-ci: check testall
+ci: check _testall

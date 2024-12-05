@@ -34,18 +34,24 @@ class User(Model):
 class Email(Model):
     email = fields.CharField(max_length=200)
     is_primary = fields.BooleanField(default=False)
-    user = fields.ForeignKeyField("models_second.User", db_constraint=False)
+    user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
+        "models_second.User", db_constraint=False
+    )
 
 
 class Category(Model):
     slug = fields.CharField(max_length=200)
     name = fields.CharField(max_length=200)
-    user = fields.ForeignKeyField("models_second.User", description="User")
+    user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
+        "models_second.User", description="User"
+    )
     created_at = fields.DatetimeField(auto_now_add=True)
 
 
 class Product(Model):
-    categories = fields.ManyToManyField("models_second.Category")
+    categories: fields.ManyToManyRelation[Category] = fields.ManyToManyField(
+        "models_second.Category"
+    )
     name = fields.CharField(max_length=50)
     view_num = fields.IntField(description="View Num")
     sort = fields.IntField()
@@ -61,5 +67,5 @@ class Product(Model):
 class Config(Model):
     label = fields.CharField(max_length=200)
     key = fields.CharField(max_length=20)
-    value = fields.JSONField()
+    value: dict = fields.JSONField()
     status: Status = fields.IntEnumField(Status, default=Status.on)

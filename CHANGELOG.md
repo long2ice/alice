@@ -1,6 +1,26 @@
 # ChangeLog
 
+## 0.8
+
+### [0.8.0](../../releases/tag/v0.8.0) - 2024-12-04
+
+- Fix the issue of parameter concatenation when generating ORM with inspectdb (#331)
+- Fix KeyError when deleting a field with unqiue=True. (#364)
+- Correct the click import. (#360)
+- Improve CLI help text and output. (#355)
+- Fix mysql drop unique index raises OperationalError. (#346)
+  **Upgrade note:**
+    1. Use column name as unique key name for mysql
+    2. Drop support for Python3.7
+
 ## 0.7
+
+### [0.7.2](../../releases/tag/v0.7.2) - 2023-07-20
+
+- Support virtual fields.
+- Fix modify multiple times. (#279)
+- Added `-i` and `--in-transaction` options to `aerich migrate` command. (#296)
+- Fix generates two semicolons in a row. (#301)
 
 ### 0.7.1
 

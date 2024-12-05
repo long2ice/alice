@@ -1,6 +1,11 @@
+from typing import TYPE_CHECKING, List, Type
+
 from tortoise.backends.mysql.schema_generator import MySQLSchemaGenerator
 
 from aerich.ddl import BaseDDL
+
+if TYPE_CHECKING:
+    from tortoise import Model  # noqa:F401
 
 
 class MysqlDDL(BaseDDL):
@@ -30,3 +35,29 @@ class MysqlDDL(BaseDDL):
     )
     _MODIFY_COLUMN_TEMPLATE = "ALTER TABLE `{table_name}` MODIFY COLUMN {column}"
     _RENAME_TABLE_TEMPLATE = "ALTER TABLE `{old_table_name}` RENAME TO `{new_table_name}`"
+
+    def _index_name(self, unique: bool, model: "Type[Model]", field_names: List[str]) -> str:
+        if unique:
+            if len(field_names) == 1:
+                # Example: `email = CharField(max_length=50, unique=True)`
+                # Generate schema: `"email" VARCHAR(10) NOT NULL UNIQUE`
+                # Unique index key is the same as field name: `email`
+                return field_names[0]
+            index_prefix = "uid"
+        else:
+            index_prefix = "idx"
+        return self.schema_generator._generate_index_name(index_prefix, model, field_names)
+
+    def add_index(self, model: "Type[Model]", field_names: List[str], unique=False) -> str:
+        return self._ADD_INDEX_TEMPLATE.format(
+            unique="UNIQUE " if unique else "",
+            index_name=self._index_name(unique, model, field_names),
+            table_name=model._meta.db_table,
+            column_names=", ".join(self.schema_generator.quote(f) for f in field_names),
+        )
+
+    def drop_index(self, model: "Type[Model]", field_names: List[str], unique=False) -> str:
+        return self._DROP_INDEX_TEMPLATE.format(
+            index_name=self._index_name(unique, model, field_names),
+            table_name=model._meta.db_table,
+        )

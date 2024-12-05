@@ -1,17 +1,18 @@
-from typing import List
+from __future__ import annotations
 
-from aerich.inspectdb import Column, Inspect
+from aerich.inspectdb import Column, FieldMapDict, Inspect
 
 
 class InspectMySQL(Inspect):
     @property
-    def field_map(self) -> dict:
+    def field_map(self) -> FieldMapDict:
         return {
             "int": self.int_field,
             "smallint": self.smallint_field,
             "tinyint": self.bool_field,
             "bigint": self.bigint_field,
             "varchar": self.char_field,
+            "char": self.char_field,
             "longtext": self.text_field,
             "text": self.text_field,
             "datetime": self.datetime_field,
@@ -23,12 +24,12 @@ class InspectMySQL(Inspect):
             "longblob": self.binary_field,
         }
 
-    async def get_all_tables(self) -> List[str]:
+    async def get_all_tables(self) -> list[str]:
         sql = "select TABLE_NAME from information_schema.TABLES where TABLE_SCHEMA=%s"
         ret = await self.conn.execute_query_dict(sql, [self.database])
         return list(map(lambda x: x["TABLE_NAME"], ret))
 
-    async def get_columns(self, table: str) -> List[Column]:
+    async def get_columns(self, table: str) -> list[Column]:
         columns = []
         sql = """select c.*, s.NON_UNIQUE, s.INDEX_NAME
 from information_schema.COLUMNS c
@@ -39,16 +40,11 @@ where c.TABLE_SCHEMA = %s
   and c.TABLE_NAME = %s"""
         ret = await self.conn.execute_query_dict(sql, [self.database, table])
         for row in ret:
-            non_unique = row["NON_UNIQUE"]
-            if non_unique is None:
-                unique = False
-            else:
+            unique = index = False
+            if (non_unique := row["NON_UNIQUE"]) is not None:
                 unique = not non_unique
-            index_name = row["INDEX_NAME"]
-            if index_name is None:
-                index = False
-            else:
-                index = row["INDEX_NAME"] != "PRIMARY"
+            if (index_name := row["INDEX_NAME"]) is not None:
+                index = index_name != "PRIMARY"
             columns.append(
                 Column(
                     name=row["COLUMN_NAME"],
@@ -59,7 +55,8 @@ where c.TABLE_SCHEMA = %s
                     comment=row["COLUMN_COMMENT"],
                     unique=row["COLUMN_KEY"] == "UNI",
                     extra=row["EXTRA"],
-                    unque=unique,
+                    # TODO: why `unque`?
+                    unque=unique,  # type:ignore
                     index=index,
                     length=row["CHARACTER_MAXIMUM_LENGTH"],
                     max_digits=row["NUMERIC_PRECISION"],
