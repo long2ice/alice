@@ -65,6 +65,10 @@ class Product(Model):
 
 
 class Config(Model):
+    category: fields.ManyToManyRelation[Category] = fields.ManyToManyField("models.Category")
+    categories: fields.ManyToManyRelation[Category] = fields.ManyToManyField(
+        "models.Category", through="config_category_map", related_name="config_set"
+    )
     name = fields.CharField(max_length=100, unique=True)
     label = fields.CharField(max_length=200)
     key = fields.CharField(max_length=20)

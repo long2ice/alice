@@ -13,7 +13,12 @@ from tortoise.indexes import Index
 
 from aerich.ddl import BaseDDL
 from aerich.models import MAX_VERSION_LENGTH, Aerich
-from aerich.utils import get_app_connection, get_models_describe, is_default_function
+from aerich.utils import (
+    get_app_connection,
+    get_models_describe,
+    is_default_function,
+    reorder_m2m_fields,
+)
 
 MIGRATE_TEMPLATE = """from tortoise import BaseDBAsyncClient
 
@@ -271,10 +276,8 @@ class Migrate:
                 # m2m fields
                 old_m2m_fields = cast(List[dict], old_model_describe.get("m2m_fields"))
                 new_m2m_fields = cast(List[dict], new_model_describe.get("m2m_fields"))
-                if old_m2m_fields and len(new_m2m_fields) >= 2:
-                    length = len(old_m2m_fields)
-                    field_index = {f["name"]: i for i, f in enumerate(new_m2m_fields)}
-                    new_m2m_fields.sort(key=lambda field: field_index.get(field["name"], length))
+                if old_m2m_fields and new_m2m_fields:
+                    reorder_m2m_fields(old_m2m_fields, new_m2m_fields)
                 for action, _, change in diff(old_m2m_fields, new_m2m_fields):
                     if change[0][0] == "db_constraint":
                         continue

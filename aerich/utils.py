@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import importlib.util
 import os
 import re
@@ -101,3 +103,34 @@ def import_py_file(file: Union[str, Path]) -> ModuleType:
     module = importlib.util.module_from_spec(spec)  # type:ignore[arg-type]
     spec.loader.exec_module(module)  # type:ignore[union-attr]
     return module
+
+
+def reorder_m2m_fields(old_m2m_fields: list[dict], new_m2m_fields: list[dict]) -> None:
+    """
+    Reorder m2m fields to help dictdiffer.diff generate more precise changes
+    :param old_m2m_fields: previous m2m field info list
+    :param new_m2m_fields: current m2m field info list
+    :return:
+    """
+    old_table_names: list[str] = [f["through"] for f in old_m2m_fields]
+    new_table_names: list[str] = [f["through"] for f in new_m2m_fields]
+    if old_table_names == new_table_names:
+        return
+    if sorted(old_table_names) == sorted(new_table_names):
+        new_m2m_fields.sort(key=lambda field: old_table_names.index(field["through"]))
+        return
+    old_field_names: list[str] = [f["name"] for f in old_m2m_fields]
+    new_field_names: list[str] = [f["name"] for f in new_m2m_fields]
+    if old_field_names == new_field_names:
+        return
+    if sorted(old_field_names) == sorted(new_field_names):
+        new_m2m_fields.sort(key=lambda field: old_field_names.index(field["name"]))
+        return
+    if unchanged_tables := set(old_table_names) & set(new_table_names):
+        unchanged = sorted(unchanged_tables)
+        ordered_old_tables = unchanged + sorted(set(old_table_names) - unchanged_tables)
+        ordered_new_tables = unchanged + sorted(set(new_table_names) - unchanged_tables)
+        if ordered_old_tables != old_table_names:
+            old_m2m_fields.sort(key=lambda field: ordered_old_tables.index(field["through"]))
+        if ordered_new_tables != new_table_names:
+            new_m2m_fields.sort(key=lambda field: ordered_new_tables.index(field["through"]))
