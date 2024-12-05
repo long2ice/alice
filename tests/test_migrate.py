@@ -1076,7 +1076,8 @@ def test_migrate(mocker: MockerFixture):
             'DROP INDEX "uid_product_name_869427"',
             'DROP TABLE IF EXISTS "email_user"',
             'DROP TABLE IF EXISTS "newmodel"',
-            'CREATE TABLE "config_category" (\n    "config_id" INT NOT NULL REFERENCES "config" ("id") ON DELETE CASCADE,\n    "category_id" INT NOT NULL REFERENCES "category" ("id") ON DELETE CASCADE\n)', 'DROP TABLE IF EXISTS "config_category_map"'
+            'CREATE TABLE "config_category" (\n    "config_id" INT NOT NULL REFERENCES "config" ("id") ON DELETE CASCADE,\n    "category_id" INT NOT NULL REFERENCES "category" ("id") ON DELETE CASCADE\n)',
+            'DROP TABLE IF EXISTS "config_category_map"',
         }
         if should_add_user_id_column_type_alter_sql():
             sql = 'ALTER TABLE "category" ALTER COLUMN "user_id" TYPE INT USING "user_id"::INT'
