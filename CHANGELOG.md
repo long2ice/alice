@@ -2,6 +2,11 @@
 
 ## 0.8
 
+### [0.8.1](Unreleased)
+
+#### Fixed
+- Sort m2m fields before comparing them with diff. (#271)
+
 ### [0.8.0](../../releases/tag/v0.8.0) - 2024-12-04
 
 - Fix the issue of parameter concatenation when generating ORM with inspectdb (#331)

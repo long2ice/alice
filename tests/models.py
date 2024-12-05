@@ -31,6 +31,8 @@ class User(Model):
     intro = fields.TextField(default="")
     longitude = fields.DecimalField(max_digits=10, decimal_places=8)
 
+    products: fields.ManyToManyRelation["Product"]
+
 
 class Email(Model):
     email_id = fields.IntField(primary_key=True)
@@ -56,6 +58,9 @@ class Category(Model):
 
 class Product(Model):
     categories: fields.ManyToManyRelation[Category] = fields.ManyToManyField("models.Category")
+    users: fields.ManyToManyRelation[User] = fields.ManyToManyField(
+        "models.User", related_name="products"
+    )
     name = fields.CharField(max_length=50)
     view_num = fields.IntField(description="View Num", default=0)
     sort = fields.IntField()

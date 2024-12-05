@@ -826,7 +826,7 @@ def should_add_user_id_column_type_alter_sql() -> bool:
     if tortoise.__version__ < "0.21":
         return False
     # tortoise-orm>=0.21 changes IntField constraints
-    # from {"ge": 1, "le": 2147483647} to {"ge": -2147483648,"le": 2147483647}
+    # from {"ge": 1, "le": 2147483647} to {"ge": -2147483648, "le": 2147483647}
     data_fields = cast(List[dict], old_models_describe["models.Category"]["data_fields"])
     user_id_constraints = data_fields[-1]["constraints"]
     return tortoise.fields.data.IntField.constraints != user_id_constraints
@@ -846,6 +846,7 @@ def test_migrate(mocker: MockerFixture):
     - add unique: User.username
     - change column: length User.password
     - add unique_together: (name,type) of Product
+    - add one more many to many field: Product.users
     - drop unique field: Config.name
     - alter default: Config.status
     - rename column: Product.image -> Product.pic
@@ -902,6 +903,7 @@ def test_migrate(mocker: MockerFixture):
             "ALTER TABLE `category` MODIFY COLUMN `created_at` DATETIME(6) NOT NULL  DEFAULT CURRENT_TIMESTAMP(6)",
             "ALTER TABLE `product` MODIFY COLUMN `body` LONGTEXT NOT NULL",
             "ALTER TABLE `email` MODIFY COLUMN `is_primary` BOOL NOT NULL  DEFAULT 0",
+            "CREATE TABLE `product_user` (\n    `product_id` INT NOT NULL REFERENCES `product` (`id`) ON DELETE CASCADE,\n    `user_id` INT NOT NULL REFERENCES `user` (`id`) ON DELETE CASCADE\n) CHARACTER SET utf8mb4",
         }
         expected_downgrade_operators = {
             "ALTER TABLE `category` MODIFY COLUMN `name` VARCHAR(200) NOT NULL",
@@ -928,6 +930,7 @@ def test_migrate(mocker: MockerFixture):
             "ALTER TABLE `user` MODIFY COLUMN `password` VARCHAR(200) NOT NULL",
             "DROP TABLE IF EXISTS `email_user`",
             "DROP TABLE IF EXISTS `newmodel`",
+            "DROP TABLE IF EXISTS `product_user`",
             "ALTER TABLE `user` MODIFY COLUMN `intro` LONGTEXT NOT NULL",
             "ALTER TABLE `config` MODIFY COLUMN `value` TEXT NOT NULL",
             "ALTER TABLE `category` MODIFY COLUMN `created_at` DATETIME(6) NOT NULL  DEFAULT CURRENT_TIMESTAMP(6)",
@@ -987,6 +990,7 @@ def test_migrate(mocker: MockerFixture):
             'CREATE TABLE IF NOT EXISTS "newmodel" (\n    "id" SERIAL NOT NULL PRIMARY KEY,\n    "name" VARCHAR(50) NOT NULL\n);\nCOMMENT ON COLUMN "config"."user_id" IS \'User\'',
             'CREATE UNIQUE INDEX "uid_product_name_869427" ON "product" ("name", "type_db_alias")',
             'CREATE UNIQUE INDEX "uid_user_usernam_9987ab" ON "user" ("username")',
+            'CREATE TABLE "product_user" (\n    "product_id" INT NOT NULL REFERENCES "product" ("id") ON DELETE CASCADE,\n    "user_id" INT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE\n)',
         }
         expected_downgrade_operators = {
             'CREATE UNIQUE INDEX "uid_category_title_f7fc03" ON "category" ("title")',
@@ -1018,6 +1022,7 @@ def test_migrate(mocker: MockerFixture):
             'ALTER TABLE "product" ALTER COLUMN "created_at" TYPE TIMESTAMPTZ USING "created_at"::TIMESTAMPTZ',
             'ALTER TABLE "product" ALTER COLUMN "is_reviewed" TYPE BOOL USING "is_reviewed"::BOOL',
             'ALTER TABLE "product" ALTER COLUMN "body" TYPE TEXT USING "body"::TEXT',
+            'DROP TABLE IF EXISTS "product_user"',
             'DROP INDEX "idx_product_name_869427"',
             'DROP INDEX "idx_email_email_4a1a33"',
             'DROP INDEX "uid_user_usernam_9987ab"',
