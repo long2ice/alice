@@ -850,6 +850,7 @@ def test_migrate(mocker: MockerFixture):
     - drop unique field: Config.name
     - alter default: Config.status
     - rename column: Product.image -> Product.pic
+    - rename fk column: Category.user -> Category.owner
     """
     mocker.patch("asyncclick.prompt", side_effect=(True,))
 
@@ -959,6 +960,7 @@ def test_migrate(mocker: MockerFixture):
             'ALTER TABLE "category" ALTER COLUMN "name" DROP NOT NULL',
             'ALTER TABLE "category" ALTER COLUMN "slug" TYPE VARCHAR(100) USING "slug"::VARCHAR(100)',
             'ALTER TABLE "category" ALTER COLUMN "created_at" TYPE TIMESTAMPTZ USING "created_at"::TIMESTAMPTZ',
+            'ALTER TABLE "category" RENAME COLUMN "user_id" TO "owner_id"',
             'ALTER TABLE "config" DROP COLUMN "name"',
             'DROP INDEX "uid_config_name_2c83c8"',
             'ALTER TABLE "config" ADD "user_id" INT NOT NULL',
@@ -997,11 +999,12 @@ def test_migrate(mocker: MockerFixture):
             'ALTER TABLE "category" ALTER COLUMN "name" SET NOT NULL',
             'ALTER TABLE "category" ALTER COLUMN "slug" TYPE VARCHAR(200) USING "slug"::VARCHAR(200)',
             'ALTER TABLE "category" ALTER COLUMN "created_at" TYPE TIMESTAMPTZ USING "created_at"::TIMESTAMPTZ',
+            'ALTER TABLE "category" RENAME COLUMN "owner_id" TO "user_id"',
             'ALTER TABLE "config" ADD "name" VARCHAR(100) NOT NULL UNIQUE',
             'CREATE UNIQUE INDEX "uid_config_name_2c83c8" ON "config" ("name")',
             'ALTER TABLE "config" ALTER COLUMN "status" SET DEFAULT 1',
             'ALTER TABLE "config" DROP COLUMN "user_id"',
-            'ALTER TABLE "config" DROP CONSTRAINT "fk_config_user_17daa970"',
+            'ALTER TABLE "config" DROP CONSTRAINT IF EXISTS "fk_config_user_17daa970"',
             'ALTER TABLE "config" RENAME TO "configs"',
             'ALTER TABLE "config" ALTER COLUMN "value" TYPE JSONB USING "value"::JSONB',
             'ALTER TABLE "email" ADD "user_id" INT NOT NULL',

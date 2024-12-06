@@ -16,7 +16,7 @@ class PostgresDDL(BaseDDL):
         'ALTER TABLE "{table_name}" ALTER COLUMN "{column}" TYPE {datatype}{using}'
     )
     _SET_COMMENT_TEMPLATE = 'COMMENT ON COLUMN "{table_name}"."{column}" IS {comment}'
-    _DROP_FK_TEMPLATE = 'ALTER TABLE "{table_name}" DROP CONSTRAINT "{fk_name}"'
+    _DROP_FK_TEMPLATE = 'ALTER TABLE "{table_name}" DROP CONSTRAINT IF EXISTS "{fk_name}"'
 
     def alter_column_null(self, model: "Type[Model]", field_describe: dict) -> str:
         db_table = model._meta.db_table
