@@ -277,7 +277,9 @@ class Migrate:
                 old_m2m_fields = cast(List[dict], old_model_describe.get("m2m_fields"))
                 new_m2m_fields = cast(List[dict], new_model_describe.get("m2m_fields"))
                 if old_m2m_fields and new_m2m_fields:
-                    reorder_m2m_fields(old_m2m_fields, new_m2m_fields)
+                    old_m2m_fields, new_m2m_fields = reorder_m2m_fields(
+                        old_m2m_fields, new_m2m_fields
+                    )
                 for action, _, change in diff(old_m2m_fields, new_m2m_fields):
                     if change[0][0] == "db_constraint":
                         continue
