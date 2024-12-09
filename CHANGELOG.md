@@ -5,6 +5,7 @@
 ### [0.8.1](Unreleased)
 
 #### Fixed
+- PostgreSQL: Cannot drop constraint after deleting or rename FK on a model. (#378)
 - Sort m2m fields before comparing them with diff. (#271)
 
 ### [0.8.0](../../releases/tag/v0.8.0) - 2024-12-04
