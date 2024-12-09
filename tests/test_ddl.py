@@ -16,8 +16,8 @@ def test_create_table():
     `name` VARCHAR(200),
     `title` VARCHAR(20) NOT NULL,
     `created_at` DATETIME(6) NOT NULL  DEFAULT CURRENT_TIMESTAMP(6),
-    `user_id` INT NOT NULL COMMENT 'User',
-    CONSTRAINT `fk_category_user_e2e3874c` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+    `owner_id` INT NOT NULL COMMENT 'User',
+    CONSTRAINT `fk_category_user_110d4c63` FOREIGN KEY (`owner_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 ) CHARACTER SET utf8mb4"""
         )
 
@@ -30,7 +30,7 @@ def test_create_table():
     "name" VARCHAR(200),
     "title" VARCHAR(20) NOT NULL,
     "created_at" TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP,
-    "user_id" INT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE /* User */
+    "owner_id" INT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE /* User */
 )"""
         )
 
@@ -43,9 +43,9 @@ def test_create_table():
     "name" VARCHAR(200),
     "title" VARCHAR(20) NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,
-    "user_id" INT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE
+    "owner_id" INT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE
 );
-COMMENT ON COLUMN "category"."user_id" IS 'User'"""
+COMMENT ON COLUMN "category"."owner_id" IS 'User'"""
         )
 
 
@@ -137,8 +137,8 @@ def test_set_comment():
     ret = Migrate.ddl.set_comment(Category, Category._meta.fields_map.get("name").describe(False))
     assert ret == 'COMMENT ON COLUMN "category"."name" IS NULL'
 
-    ret = Migrate.ddl.set_comment(Category, Category._meta.fields_map.get("user").describe(False))
-    assert ret == 'COMMENT ON COLUMN "category"."user_id" IS \'User\''
+    ret = Migrate.ddl.set_comment(Category, Category._meta.fields_map.get("owner").describe(False))
+    assert ret == 'COMMENT ON COLUMN "category"."owner_id" IS \'User\''
 
 
 def test_drop_column():
@@ -181,27 +181,27 @@ def test_drop_index():
 
 def test_add_fk():
     ret = Migrate.ddl.add_fk(
-        Category, Category._meta.fields_map.get("user").describe(False), User.describe(False)
+        Category, Category._meta.fields_map.get("owner").describe(False), User.describe(False)
     )
     if isinstance(Migrate.ddl, MysqlDDL):
         assert (
             ret
-            == "ALTER TABLE `category` ADD CONSTRAINT `fk_category_user_e2e3874c` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE"
+            == "ALTER TABLE `category` ADD CONSTRAINT `fk_category_user_110d4c63` FOREIGN KEY (`owner_id`) REFERENCES `user` (`id`) ON DELETE CASCADE"
         )
     else:
         assert (
             ret
-            == 'ALTER TABLE "category" ADD CONSTRAINT "fk_category_user_e2e3874c" FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON DELETE CASCADE'
+            == 'ALTER TABLE "category" ADD CONSTRAINT "fk_category_user_110d4c63" FOREIGN KEY ("owner_id") REFERENCES "user" ("id") ON DELETE CASCADE'
         )
 
 
 def test_drop_fk():
     ret = Migrate.ddl.drop_fk(
-        Category, Category._meta.fields_map.get("user").describe(False), User.describe(False)
+        Category, Category._meta.fields_map.get("owner").describe(False), User.describe(False)
     )
     if isinstance(Migrate.ddl, MysqlDDL):
-        assert ret == "ALTER TABLE `category` DROP FOREIGN KEY `fk_category_user_e2e3874c`"
+        assert ret == "ALTER TABLE `category` DROP FOREIGN KEY `fk_category_user_110d4c63`"
     elif isinstance(Migrate.ddl, PostgresDDL):
-        assert ret == 'ALTER TABLE "category" DROP CONSTRAINT "fk_category_user_e2e3874c"'
+        assert ret == 'ALTER TABLE "category" DROP CONSTRAINT IF EXISTS "fk_category_user_110d4c63"'
     else:
-        assert ret == 'ALTER TABLE "category" DROP FOREIGN KEY "fk_category_user_e2e3874c"'
+        assert ret == 'ALTER TABLE "category" DROP FOREIGN KEY "fk_category_user_110d4c63"'

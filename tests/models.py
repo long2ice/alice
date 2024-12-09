@@ -49,7 +49,7 @@ def default_name():
 class Category(Model):
     slug = fields.CharField(max_length=100)
     name = fields.CharField(max_length=200, null=True, default=default_name)
-    user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
+    owner: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
         "models.User", description="User"
     )
     title = fields.CharField(max_length=20, unique=False)
