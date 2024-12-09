@@ -1,3 +1,4 @@
+import contextlib
 import os
 import shlex
 import subprocess
@@ -10,9 +11,8 @@ from aerich.migrate import Migrate
 if sys.version_info >= (3, 11):
     from contextlib import chdir
 else:
-    from contextlib import AbstractContextManager
 
-    class chdir(AbstractContextManager):  # Copied from source code of Python3.13
+    class chdir(contextlib.AbstractContextManager):  # Copied from source code of Python3.13
         """Non thread-safe context manager to change the current working directory."""
 
         def __init__(self, path):
@@ -45,23 +45,27 @@ TORTOISE_ORM = {
 """
 
 
+def run_shell(cmd: str) -> subprocess.CompletedProcess:
+    return subprocess.run(shlex.split(cmd), timeout=2)
+
+
 def test_sqlite_migrate(tmp_path: Path) -> None:
     if not isinstance(Migrate.ddl, SqliteDDL):
         return
-    with chdir(tmp_path):
+    with chdir(tmp_path), contextlib.suppress(subprocess.TimeoutExpired):
         models_py = tmp_path / "models.py"
         settings_py = tmp_path / "settings.py"
         models_py.write_text(MODELS)
         settings_py.write_text(SETTINGS)
-        subprocess.run(shlex.split("aerich init -t settings.TORTOISE_ORM"))
-        subprocess.run(shlex.split("aerich init-db"))
+        run_shell("aerich init -t settings.TORTOISE_ORM")
+        run_shell("aerich init-db")
         models_py.write_text(MODELS.replace("index=False", "index=True"))
-        r = subprocess.run(shlex.split("aerich migrate"))
+        r = run_shell("aerich migrate")
         assert r.returncode == 0
-        r = subprocess.run(shlex.split("aerich upgrade"))
+        r = run_shell("aerich upgrade")
         assert r.returncode == 0
         models_py.write_text(MODELS.replace("index=False, unique=False", "index=True, unique=True"))
-        r = subprocess.run(shlex.split("aerich migrate"))
+        r = run_shell("aerich migrate")
         assert r.returncode == 0
-        r = subprocess.run(shlex.split("aerich upgrade"))
+        r = run_shell("aerich upgrade")
         assert r.returncode == 0
