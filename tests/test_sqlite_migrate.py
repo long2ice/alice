@@ -1,6 +1,7 @@
 import contextlib
 import os
 import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -33,7 +34,7 @@ from tortoise import Model, fields
 
 
 class Foo(Model):
-    name = fields.CharField(max_length=60, index=False, unique=False)
+    name = fields.CharField(max_length=60, db_index=False)
 """
 
 SETTINGS = """from __future__ import annotations
@@ -113,6 +114,22 @@ async def test_drop_unique_field() -> None:
     name = "1_" + uuid.uuid4().hex
     await Foo.create(name=name, age=0)
     assert (await Foo.filter(name=name).exists())
+
+
+@pytest.mark.asyncio
+async def test_with_age_field() -> None:
+    name = "2_" + uuid.uuid4().hex
+    await Foo.create(name=name, age=0)
+    obj = await Foo.get(name=name)
+    assert obj.age == 0
+
+
+@pytest.mark.asyncio
+async def test_without_age_field() -> None:
+    name = "3_" + uuid.uuid4().hex
+    await Foo.create(name=name, age=0)
+    obj = await Foo.get(name=name)
+    assert getattr(obj, "age", None) is None
 """
 
 
@@ -120,7 +137,7 @@ def run_aerich(cmd: str) -> None:
     with contextlib.suppress(subprocess.TimeoutExpired):
         if not cmd.startswith("aerich"):
             cmd = "aerich " + cmd
-        subprocess.run(shlex.split(cmd), timeout=1)
+        subprocess.run(shlex.split(cmd), timeout=2)
 
 
 def run_shell(cmd: str) -> subprocess.CompletedProcess:
@@ -145,38 +162,56 @@ def test_sqlite_migrate(tmp_path: Path) -> None:
         assert r.returncode == 0
         # Add index
         models_py.write_text(MODELS.replace("index=False", "index=True"))
-        run_aerich("aerich migrate")
+        run_aerich("aerich migrate")  # migrations/models/1_
         run_aerich("aerich upgrade")
         r = run_shell("pytest -s _test.py::test_allow_duplicate")
         assert r.returncode == 0
         # Drop index
         models_py.write_text(MODELS)
-        run_aerich("aerich migrate")
+        run_aerich("aerich migrate")  # migrations/models/2_
         run_aerich("aerich upgrade")
         r = run_shell("pytest -s _test.py::test_allow_duplicate")
         assert r.returncode == 0
         # Add unique index
-        models_py.write_text(MODELS.replace("index=False, unique=False", "index=True, unique=True"))
-        run_aerich("aerich migrate")
+        models_py.write_text(MODELS.replace("index=False", "index=True, unique=True"))
+        run_aerich("aerich migrate")  # migrations/models/3_
         run_aerich("aerich upgrade")
         r = run_shell("pytest _test.py::test_unique_is_true")
         assert r.returncode == 0
         # Drop unique index
         models_py.write_text(MODELS)
-        run_aerich("aerich migrate")
+        run_aerich("aerich migrate")  # migrations/models/4_
         run_aerich("aerich upgrade")
         r = run_shell("pytest _test.py::test_allow_duplicate")
         assert r.returncode == 0
         # Add field with unique=True
         with models_py.open("a") as f:
             f.write("    age = fields.IntField(unique=True, default=0)")
-        run_aerich("aerich migrate")
+        run_aerich("aerich migrate")  # migrations/models/5_
         run_aerich("aerich upgrade")
         r = run_shell("pytest _test.py::test_add_unique_field")
         assert r.returncode == 0
         # Drop unique field
         models_py.write_text(MODELS)
-        run_aerich("aerich migrate")
+        run_aerich("aerich migrate")  # migrations/models/6_
         run_aerich("aerich upgrade")
         r = run_shell("pytest -s _test.py::test_drop_unique_field")
+        assert r.returncode == 0
+
+        # Initial with indexed field and then drop it
+        shutil.rmtree("migrations")
+        Path("db.sqlite3").unlink()
+        models_py.write_text(MODELS + "    age = fields.IntField(db_index=True)")
+        run_aerich("aerich init -t settings.TORTOISE_ORM")
+        run_aerich("aerich init-db")
+        migration_file = list(Path("migrations/models").glob("0_*.py"))[0]
+        assert "CREATE INDEX" in migration_file.read_text()
+        r = run_shell("pytest _test.py::test_with_age_field")
+        assert r.returncode == 0
+        models_py.write_text(MODELS)
+        run_aerich("aerich migrate")
+        run_aerich("aerich upgrade")
+        migration_file_1 = list(Path("migrations/models").glob("1_*.py"))[0]
+        assert "DROP INDEX" in migration_file_1.read_text()
+        r = run_shell("pytest _test.py::test_without_age_field")
         assert r.returncode == 0
