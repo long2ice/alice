@@ -199,19 +199,30 @@ def test_sqlite_migrate(tmp_path: Path) -> None:
         assert r.returncode == 0
 
         # Initial with indexed field and then drop it
-        shutil.rmtree("migrations")
-        Path("db.sqlite3").unlink()
+        migrations_dir = Path("migrations/models")
+        shutil.rmtree(migrations_dir)
+        db_file = Path("db.sqlite3")
+        db_file.unlink()
         models_py.write_text(MODELS + "    age = fields.IntField(db_index=True)")
         run_aerich("aerich init -t settings.TORTOISE_ORM")
         run_aerich("aerich init-db")
-        migration_file = list(Path("migrations/models").glob("0_*.py"))[0]
+        migration_file = list(migrations_dir.glob("0_*.py"))[0]
         assert "CREATE INDEX" in migration_file.read_text()
         r = run_shell("pytest _test.py::test_with_age_field")
         assert r.returncode == 0
         models_py.write_text(MODELS)
         run_aerich("aerich migrate")
         run_aerich("aerich upgrade")
-        migration_file_1 = list(Path("migrations/models").glob("1_*.py"))[0]
+        migration_file_1 = list(migrations_dir.glob("1_*.py"))[0]
         assert "DROP INDEX" in migration_file_1.read_text()
         r = run_shell("pytest _test.py::test_without_age_field")
         assert r.returncode == 0
+
+        # Generate migration file in emptry directory
+        db_file.unlink()
+        run_aerich("aerich init-db")
+        assert not db_file.exists()
+        for p in migrations_dir.glob("*"):
+            p.unlink()
+        run_aerich("aerich init-db")
+        assert db_file.exists()

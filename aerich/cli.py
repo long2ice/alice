@@ -223,9 +223,6 @@ async def init_db(ctx: Context, safe: bool) -> None:
         return click.secho(
             f"App {app} is already initialized. Delete {dirname} and try again.", fg=Color.yellow
         )
-    finally:
-        if dirname.is_dir() and not any(dirname.iterdir()):
-            dirname.rmdir()
 
 
 @cli.command(help="Prints the current database tables to stdout as Tortoise-ORM models.")
