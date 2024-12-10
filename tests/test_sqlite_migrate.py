@@ -156,6 +156,8 @@ def test_sqlite_migrate(tmp_path: Path) -> None:
         settings_py.write_text(SETTINGS)
         test_py.write_text(TESTS)
         Path("conftest.py").write_text(CONFTEST)
+        if (db_file := Path("db.sqlite3")).exists():
+            db_file.unlink()
         run_aerich("aerich init -t settings.TORTOISE_ORM")
         run_aerich("aerich init-db")
         r = run_shell("pytest _test.py::test_allow_duplicate")
@@ -201,7 +203,6 @@ def test_sqlite_migrate(tmp_path: Path) -> None:
         # Initial with indexed field and then drop it
         migrations_dir = Path("migrations/models")
         shutil.rmtree(migrations_dir)
-        db_file = Path("db.sqlite3")
         db_file.unlink()
         models_py.write_text(MODELS + "    age = fields.IntField(db_index=True)")
         run_aerich("aerich init -t settings.TORTOISE_ORM")
@@ -223,6 +224,9 @@ def test_sqlite_migrate(tmp_path: Path) -> None:
         run_aerich("aerich init-db")
         assert not db_file.exists()
         for p in migrations_dir.glob("*"):
-            p.unlink()
+            if p.is_dir():
+                shutil.rmtree(p)
+            else:
+                p.unlink()
         run_aerich("aerich init-db")
         assert db_file.exists()
