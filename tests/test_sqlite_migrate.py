@@ -33,7 +33,7 @@ from tortoise import Model, fields
 
 
 class Foo(Model):
-    name = fields.CharField(max_length=20, index=False, unique=False)
+    name = fields.CharField(max_length=60, index=False, unique=False)
 """
 
 SETTINGS = """from __future__ import annotations
@@ -44,28 +44,139 @@ TORTOISE_ORM = {
 }
 """
 
+CONFTEST = """from __future__ import annotations
+
+import asyncio
+from typing import Generator
+
+import pytest
+import pytest_asyncio
+from tortoise import Tortoise, connections
+
+import settings
+
+
+@pytest.fixture(scope="session")
+def event_loop() -> Generator:
+    policy = asyncio.get_event_loop_policy()
+    res = policy.new_event_loop()
+    asyncio.set_event_loop(res)
+    res._close = res.close  # type:ignore[attr-defined]
+    res.close = lambda: None  # type:ignore[method-assign]
+
+    yield res
+
+    res._close()  # type:ignore[attr-defined]
+
+
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def api(event_loop, request):
+    await Tortoise.init(config=settings.TORTOISE_ORM)
+    request.addfinalizer(lambda: event_loop.run_until_complete(connections.close_all(discard=True)))
+"""
+
+TESTS = """from __future__ import annotations
+
+import uuid
+
+import pytest
+from tortoise.exceptions import IntegrityError
+
+from models import Foo
+
+
+@pytest.mark.asyncio
+async def test_allow_duplicate() -> None:
+    await Foo.all().delete()
+    await Foo.create(name="foo")
+    obj = await Foo.create(name="foo")
+    assert (await Foo.all().count()) == 2
+    await obj.delete()
+
+
+@pytest.mark.asyncio
+async def test_unique_is_true() -> None:
+    with pytest.raises(IntegrityError):
+        await Foo.create(name="foo")
+
+
+@pytest.mark.asyncio
+async def test_add_unique_field() -> None:
+    if not await Foo.filter(age=0).exists():
+        await Foo.create(name="0_"+uuid.uuid4().hex, age=0)
+    with pytest.raises(IntegrityError):
+        await Foo.create(name=uuid.uuid4().hex, age=0)
+
+
+@pytest.mark.asyncio
+async def test_drop_unique_field() -> None:
+    name = "1_" + uuid.uuid4().hex
+    await Foo.create(name=name, age=0)
+    assert (await Foo.filter(name=name).exists())
+"""
+
+
+def run_aerich(cmd: str) -> None:
+    with contextlib.suppress(subprocess.TimeoutExpired):
+        if not cmd.startswith("aerich"):
+            cmd = "aerich " + cmd
+        subprocess.run(shlex.split(cmd), timeout=1)
+
 
 def run_shell(cmd: str) -> subprocess.CompletedProcess:
-    return subprocess.run(shlex.split(cmd), timeout=2)
+    envs = dict(os.environ, PYTHONPATH=".")
+    return subprocess.run(shlex.split(cmd), env=envs)
 
 
 def test_sqlite_migrate(tmp_path: Path) -> None:
-    if not isinstance(Migrate.ddl, SqliteDDL):
+    if (ddl := getattr(Migrate, "ddl", None)) and not isinstance(ddl, SqliteDDL):
         return
-    with chdir(tmp_path), contextlib.suppress(subprocess.TimeoutExpired):
-        models_py = tmp_path / "models.py"
-        settings_py = tmp_path / "settings.py"
+    with chdir(tmp_path):
+        models_py = Path("models.py")
+        settings_py = Path("settings.py")
+        test_py = Path("_test.py")
         models_py.write_text(MODELS)
         settings_py.write_text(SETTINGS)
-        run_shell("aerich init -t settings.TORTOISE_ORM")
-        run_shell("aerich init-db")
+        test_py.write_text(TESTS)
+        Path("conftest.py").write_text(CONFTEST)
+        run_aerich("aerich init -t settings.TORTOISE_ORM")
+        run_aerich("aerich init-db")
+        r = run_shell("pytest _test.py::test_allow_duplicate")
+        assert r.returncode == 0
+        # Add index
         models_py.write_text(MODELS.replace("index=False", "index=True"))
-        r = run_shell("aerich migrate")
+        run_aerich("aerich migrate")
+        run_aerich("aerich upgrade")
+        r = run_shell("pytest -s _test.py::test_allow_duplicate")
         assert r.returncode == 0
-        r = run_shell("aerich upgrade")
+        # Drop index
+        models_py.write_text(MODELS)
+        run_aerich("aerich migrate")
+        run_aerich("aerich upgrade")
+        r = run_shell("pytest -s _test.py::test_allow_duplicate")
         assert r.returncode == 0
+        # Add unique index
         models_py.write_text(MODELS.replace("index=False, unique=False", "index=True, unique=True"))
-        r = run_shell("aerich migrate")
+        run_aerich("aerich migrate")
+        run_aerich("aerich upgrade")
+        r = run_shell("pytest _test.py::test_unique_is_true")
         assert r.returncode == 0
-        r = run_shell("aerich upgrade")
+        # Drop unique index
+        models_py.write_text(MODELS)
+        run_aerich("aerich migrate")
+        run_aerich("aerich upgrade")
+        r = run_shell("pytest _test.py::test_allow_duplicate")
+        assert r.returncode == 0
+        # Add field with unique=True
+        with models_py.open("a") as f:
+            f.write("    age = fields.IntField(unique=True, default=0)")
+        run_aerich("aerich migrate")
+        run_aerich("aerich upgrade")
+        r = run_shell("pytest _test.py::test_add_unique_field")
+        assert r.returncode == 0
+        # Drop unique field
+        models_py.write_text(MODELS)
+        run_aerich("aerich migrate")
+        run_aerich("aerich upgrade")
+        r = run_shell("pytest -s _test.py::test_drop_unique_field")
         assert r.returncode == 0
