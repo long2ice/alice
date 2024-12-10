@@ -1,11 +1,33 @@
 # ChangeLog
 
+## 0.8
+
+### [0.8.1](Unreleased)
+
+#### Fixed
+- sqlite: failed to create/drop index. (#302)
+- PostgreSQL: Cannot drop constraint after deleting or rename FK on a model. (#378)
+- Sort m2m fields before comparing them with diff. (#271)
+
+### [0.8.0](../../releases/tag/v0.8.0) - 2024-12-04
+
+- Fix the issue of parameter concatenation when generating ORM with inspectdb (#331)
+- Fix KeyError when deleting a field with unqiue=True. (#364)
+- Correct the click import. (#360)
+- Improve CLI help text and output. (#355)
+- Fix mysql drop unique index raises OperationalError. (#346)
+  **Upgrade note:**
+    1. Use column name as unique key name for mysql
+    2. Drop support for Python3.7
+
 ## 0.7
 
-### 0.7.2
+### [0.7.2](../../releases/tag/v0.7.2) - 2023-07-20
 
 - Support virtual fields.
 - Fix modify multiple times. (#279)
+- Added `-i` and `--in-transaction` options to `aerich migrate` command. (#296)
+- Fix generates two semicolons in a row. (#301)
 
 ### 0.7.1
 

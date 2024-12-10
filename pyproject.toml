@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aerich"
-version = "0.7.2"
+version = "0.8.1"
 description = "A database migrations tool for Tortoise ORM."
 authors = ["long2ice <long2ice@gmail.com>"]
 license = "Apache-2.0"
@@ -15,30 +15,33 @@ packages = [
 include = ["CHANGELOG.md", "LICENSE", "README.md"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 tortoise-orm = "*"
-click = "*"
 asyncpg = { version = "*", optional = true }
-asyncmy = { version = "*", optional = true }
-pydantic = "*"
+asyncmy = { version = "^0.2.9", optional = true, allow-prereleases = true }
+pydantic = "^2.0"
 dictdiffer = "*"
 tomlkit = "*"
+asyncclick = "^8.1.7.2"
 
-[tool.poetry.dev-dependencies]
-flake8 = "*"
+[tool.poetry.group.dev.dependencies]
+ruff = "*"
 isort = "*"
 black = "*"
 pytest = "*"
 pytest-xdist = "*"
-pytest-asyncio = "*"
+# Breaking change in 0.23.*
+# https://github.com/pytest-dev/pytest-asyncio/issues/706
+pytest-asyncio = "^0.21.2"
 bandit = "*"
 pytest-mock = "*"
 cryptography = "*"
-pyproject-flake8 = "*"
+mypy = "^1.10.0"
 
 [tool.poetry.extras]
 asyncmy = ["asyncmy"]
 asyncpg = ["asyncpg"]
+
 
 [tool.aerich]
 tortoise_orm = "conftest.tortoise_orm"
@@ -46,22 +49,25 @@ location = "./migrations"
 src_folder = "./."
 
 [build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 aerich = "aerich.cli:main"
 
 [tool.black]
 line-length = 100
-target-version = ['py36', 'py37', 'py38', 'py39']
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
 
 [tool.pytest.ini_options]
 asyncio_mode = 'auto'
 
 [tool.mypy]
 pretty = true
+python_version = "3.8"
 ignore_missing_imports = true
 
-[tool.flake8]
-ignore = 'E501,W503,E203'
+[tool.ruff]
+line-length = 100
+[tool.ruff.lint]
+ignore = ['E501']

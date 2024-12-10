@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List
+from typing import TYPE_CHECKING, List, Optional, Type
 
 from tortoise import Tortoise, generate_schema_for_client
 from tortoise.exceptions import OperationalError
@@ -20,6 +20,9 @@ from aerich.utils import (
     import_py_file,
 )
 
+if TYPE_CHECKING:
+    from aerich.inspectdb import Inspect  # noqa:F401
+
 
 class Command:
     def __init__(
@@ -27,16 +30,27 @@ class Command:
         tortoise_config: dict,
         app: str = "models",
         location: str = "./migrations",
-    ):
+    ) -> None:
         self.tortoise_config = tortoise_config
         self.app = app
         self.location = location
         Migrate.app = app
 
-    async def init(self):
+    async def init(self) -> None:
         await Migrate.init(self.tortoise_config, self.app, self.location)
 
-    async def upgrade(self):
+    async def _upgrade(self, conn, version_file) -> None:
+        file_path = Path(Migrate.migrate_location, version_file)
+        m = import_py_file(file_path)
+        upgrade = m.upgrade
+        await conn.execute_script(await upgrade(conn))
+        await Aerich.create(
+            version=version_file,
+            app=self.app,
+            content=get_models_describe(self.app),
+        )
+
+    async def upgrade(self, run_in_transaction: bool = True) -> List[str]:
         migrated = []
         for version_file in Migrate.get_all_version_files():
             try:
@@ -44,23 +58,18 @@ class Command:
             except OperationalError:
                 exists = False
             if not exists:
-                async with in_transaction(
-                    get_app_connection_name(self.tortoise_config, self.app)
-                ) as conn:
-                    file_path = Path(Migrate.migrate_location, version_file)
-                    m = import_py_file(file_path)
-                    upgrade = getattr(m, "upgrade")
-                    await conn.execute_script(await upgrade(conn))
-                    await Aerich.create(
-                        version=version_file,
-                        app=self.app,
-                        content=get_models_describe(self.app),
-                    )
+                app_conn_name = get_app_connection_name(self.tortoise_config, self.app)
+                if run_in_transaction:
+                    async with in_transaction(app_conn_name) as conn:
+                        await self._upgrade(conn, version_file)
+                else:
+                    app_conn = get_app_connection(self.tortoise_config, self.app)
+                    await self._upgrade(app_conn, version_file)
                 migrated.append(version_file)
         return migrated
 
-    async def downgrade(self, version: int, delete: bool):
-        ret = []
+    async def downgrade(self, version: int, delete: bool) -> List[str]:
+        ret: List[str] = []
         if version == -1:
             specified_version = await Migrate.get_last_version()
         else:
@@ -73,25 +82,25 @@ class Command:
             versions = [specified_version]
         else:
             versions = await Aerich.filter(app=self.app, pk__gte=specified_version.pk)
-        for version in versions:
-            file = version.version
+        for version_obj in versions:
+            file = version_obj.version
             async with in_transaction(
                 get_app_connection_name(self.tortoise_config, self.app)
             ) as conn:
                 file_path = Path(Migrate.migrate_location, file)
                 m = import_py_file(file_path)
-                downgrade = getattr(m, "downgrade")
+                downgrade = m.downgrade
                 downgrade_sql = await downgrade(conn)
                 if not downgrade_sql.strip():
                     raise DowngradeError("No downgrade items found")
                 await conn.execute_script(downgrade_sql)
-                await version.delete()
+                await version_obj.delete()
                 if delete:
                     os.unlink(file_path)
                 ret.append(file)
         return ret
 
-    async def heads(self):
+    async def heads(self) -> List[str]:
         ret = []
         versions = Migrate.get_all_version_files()
         for version in versions:
@@ -99,15 +108,15 @@ class Command:
                 ret.append(version)
         return ret
 
-    async def history(self):
+    async def history(self) -> List[str]:
         versions = Migrate.get_all_version_files()
         return [version for version in versions]
 
-    async def inspectdb(self, tables: List[str] = None) -> str:
+    async def inspectdb(self, tables: Optional[List[str]] = None) -> str:
         connection = get_app_connection(self.tortoise_config, self.app)
         dialect = connection.schema_generator.DIALECT
         if dialect == "mysql":
-            cls = InspectMySQL
+            cls: Type["Inspect"] = InspectMySQL
         elif dialect == "postgres":
             cls = InspectPostgres
         elif dialect == "sqlite":
@@ -117,10 +126,10 @@ class Command:
         inspect = cls(connection, tables)
         return await inspect.inspect()
 
-    async def migrate(self, name: str = "update"):
-        return await Migrate.migrate(name)
+    async def migrate(self, name: str = "update", empty: bool = False) -> str:
+        return await Migrate.migrate(name, empty)
 
-    async def init_db(self, safe: bool):
+    async def init_db(self, safe: bool) -> None:
         location = self.location
         app = self.app
         dirname = Path(location, app)
