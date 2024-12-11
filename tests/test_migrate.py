@@ -1054,6 +1054,30 @@ def test_sort_all_version_files(mocker):
     ]
 
 
+def test_sort_files_containing_non_migrations(mocker):
+    mocker.patch(
+        "os.listdir",
+        return_value=[
+            "1_datetime_update.py",
+            "11_datetime_update.py",
+            "10_datetime_update.py",
+            "2_datetime_update.py",
+            "not_a_migration.py",
+            "999.py",
+            "123foo_not_a_migration.py",
+        ],
+    )
+
+    Migrate.migrate_location = "."
+
+    assert Migrate.get_all_version_files() == [
+        "1_datetime_update.py",
+        "2_datetime_update.py",
+        "10_datetime_update.py",
+        "11_datetime_update.py",
+    ]
+
+
 async def test_empty_migration(mocker, tmp_path: Path) -> None:
     mocker.patch("os.listdir", return_value=[])
     Migrate.app = "foo"

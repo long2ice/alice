@@ -3,7 +3,6 @@ import importlib
 import os
 from datetime import datetime
 from pathlib import Path
-import re
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Type, Union, cast
 
 import asyncclick as click
@@ -55,16 +54,18 @@ class Migrate:
 
     @classmethod
     def get_all_version_files(cls) -> List[str]:
-        pattern = re.compile(r"(\d+)_")
-        files = [i.name for i in cls.migrate_location.glob("*.py") if pattern.match(i.name)]
-        
-        def sort_key(x: str):
-            match = pattern.search(x)
-            if match:
-                return int(match.group(1))
-            raise ValueError(f"Invalid version file name: {x}")
-        
-        return sorted(files, key=sort_key)
+        def get_file_version(file_name: str):
+            return file_name.split("_")[0]
+
+        def is_version_file(file_name: str):
+            if not file_name.endswith("py"):
+                return False
+            if file_name.find("_") <= 0:
+                return False
+            return get_file_version(file_name).isdigit()
+
+        files = filter(is_version_file, os.listdir(cls.migrate_location))
+        return sorted(files, key=lambda x: int(get_file_version(x)))
 
     @classmethod
     def _get_model(cls, model: str) -> Type[Model]:
