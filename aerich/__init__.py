@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, List, Optional, Type
 
 from tortoise import Tortoise, generate_schema_for_client
 from tortoise.exceptions import OperationalError
-from tortoise.transactions import in_transaction
+from tortoise.transactions import in_transaction, _get_connection
 from tortoise.utils import get_schema_sql
 
 from aerich.exceptions import DowngradeError
@@ -34,6 +34,7 @@ class Command:
         self.tortoise_config = tortoise_config
         self.app = app
         self.location = location
+        self.connection = _get_connection(self.tortoise_config["apps"][self.app]["default_connection"])
         Migrate.app = app
 
     async def init(self) -> None:
@@ -54,7 +55,7 @@ class Command:
         migrated = []
         for version_file in Migrate.get_all_version_files():
             try:
-                exists = await Aerich.exists(version=version_file, app=self.app)
+                exists = await Aerich.exists(version=version_file, app=self.app, using_db=self.connection)
             except OperationalError:
                 exists = False
             if not exists:
