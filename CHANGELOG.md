@@ -5,6 +5,7 @@
 ### [0.8.1](Unreleased)
 
 #### Fixed
+- Fix NonExistentKey when running `aerich init` without `[tool]` section in config file. (#284)
 - Fix configuration file reading error when containing Chinese characters. (#286)
 - sqlite: failed to create/drop index. (#302)
 - PostgreSQL: Cannot drop constraint after deleting or rename FK on a model. (#378)
