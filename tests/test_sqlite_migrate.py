@@ -230,3 +230,9 @@ def test_sqlite_migrate(tmp_path: Path) -> None:
                 p.unlink()
         run_aerich("aerich init-db")
         assert db_file.exists()
+
+        # init without '[tool]' section in pyproject.toml
+        config_file = Path("pyproject.toml")
+        config_file.write_text('[project]\nname = "project"')
+        run_aerich("init -t settings.TORTOISE_ORM")
+        assert "[tool.aerich]" in config_file.read_text()
