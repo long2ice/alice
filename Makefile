@@ -30,10 +30,10 @@ endif
 check: deps _check
 
 test: deps
-	$(py_warn) TEST_DB=sqlite://:memory: py.test
+	$(py_warn) TEST_DB=sqlite://:memory: pytest
 
 test_sqlite:
-	$(py_warn) TEST_DB=sqlite://:memory: py.test
+	$(py_warn) TEST_DB=sqlite://:memory: pytest
 
 test_mysql:
 	$(py_warn) TEST_DB="mysql://root:$(MYSQL_PASS)@$(MYSQL_HOST):$(MYSQL_PORT)/test_\{\}" pytest -vv -s

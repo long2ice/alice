@@ -190,7 +190,10 @@ async def init(ctx: Context, tortoise_orm, location, src_folder) -> None:
     table["tortoise_orm"] = tortoise_orm
     table["location"] = location
     table["src_folder"] = src_folder
-    doc["tool"]["aerich"] = table
+    try:
+        doc["tool"]["aerich"] = table
+    except KeyError:
+        doc["tool"] = {"aerich": table}
 
     config_path.write_text(tomlkit.dumps(doc))
 

@@ -174,9 +174,6 @@ def test_drop_index():
     if isinstance(Migrate.ddl, MysqlDDL):
         assert ret == "ALTER TABLE `category` DROP INDEX `idx_category_name_8b0cb9`"
         assert ret_u == "ALTER TABLE `category` DROP INDEX `name`"
-    elif isinstance(Migrate.ddl, PostgresDDL):
-        assert ret == 'DROP INDEX "idx_category_name_8b0cb9"'
-        assert ret_u == 'DROP INDEX "uid_category_name_8b0cb9"'
     else:
         assert ret == 'DROP INDEX IF EXISTS "idx_category_name_8b0cb9"'
         assert ret_u == 'DROP INDEX IF EXISTS "uid_category_name_8b0cb9"'
