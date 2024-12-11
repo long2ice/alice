@@ -54,13 +54,13 @@ class Migrate:
 
     @classmethod
     def get_all_version_files(cls) -> List[str]:
-        def get_file_version(file_name: str):
+        def get_file_version(file_name: str) -> str:
             return file_name.split("_")[0]
 
-        def is_version_file(file_name: str):
+        def is_version_file(file_name: str) -> bool:
             if not file_name.endswith("py"):
                 return False
-            if file_name.find("_") <= 0:
+            if "_" not in file_name:
                 return False
             return get_file_version(file_name).isdigit()
 
