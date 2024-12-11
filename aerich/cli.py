@@ -40,7 +40,7 @@ async def cli(ctx: Context, config, app) -> None:
             raise UsageError(
                 "You need to run `aerich init` first to create the config file.", ctx=ctx
             )
-        content = config_path.read_text()
+        content = config_path.read_text("utf-8")
         doc: dict = tomlkit.parse(content)
         try:
             tool = cast(Dict[str, str], doc["tool"]["aerich"])
@@ -190,7 +190,10 @@ async def init(ctx: Context, tortoise_orm, location, src_folder) -> None:
     table["tortoise_orm"] = tortoise_orm
     table["location"] = location
     table["src_folder"] = src_folder
-    doc["tool"]["aerich"] = table
+    try:
+        doc["tool"]["aerich"] = table
+    except KeyError:
+        doc["tool"] = {"aerich": table}
 
     config_path.write_text(tomlkit.dumps(doc))
 

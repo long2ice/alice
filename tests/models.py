@@ -57,7 +57,9 @@ class Category(Model):
 
 
 class Product(Model):
-    categories: fields.ManyToManyRelation[Category] = fields.ManyToManyField("models.Category")
+    categories: fields.ManyToManyRelation[Category] = fields.ManyToManyField(
+        "models.Category", null=False
+    )
     users: fields.ManyToManyRelation[User] = fields.ManyToManyField(
         "models.User", related_name="products"
     )

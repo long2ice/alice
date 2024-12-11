@@ -63,6 +63,14 @@ def test_add_column():
         assert ret == "ALTER TABLE `category` ADD `name` VARCHAR(200)"
     else:
         assert ret == 'ALTER TABLE "category" ADD "name" VARCHAR(200)'
+    # add unique column
+    ret = Migrate.ddl.add_column(User, User._meta.fields_map.get("username").describe(False))
+    if isinstance(Migrate.ddl, MysqlDDL):
+        assert ret == "ALTER TABLE `user` ADD `username` VARCHAR(20) NOT NULL UNIQUE"
+    elif isinstance(Migrate.ddl, PostgresDDL):
+        assert ret == 'ALTER TABLE "user" ADD "username" VARCHAR(20) NOT NULL UNIQUE'
+    else:
+        assert ret == 'ALTER TABLE "user" ADD "username" VARCHAR(20) NOT NULL'
 
 
 def test_modify_column():
@@ -155,14 +163,9 @@ def test_add_index():
     if isinstance(Migrate.ddl, MysqlDDL):
         assert index == "ALTER TABLE `category` ADD INDEX `idx_category_name_8b0cb9` (`name`)"
         assert index_u == "ALTER TABLE `category` ADD UNIQUE INDEX `name` (`name`)"
-    elif isinstance(Migrate.ddl, PostgresDDL):
+    else:
         assert index == 'CREATE INDEX "idx_category_name_8b0cb9" ON "category" ("name")'
         assert index_u == 'CREATE UNIQUE INDEX "uid_category_name_8b0cb9" ON "category" ("name")'
-    else:
-        assert index == 'ALTER TABLE "category" ADD INDEX "idx_category_name_8b0cb9" ("name")'
-        assert (
-            index_u == 'ALTER TABLE "category" ADD UNIQUE INDEX "uid_category_name_8b0cb9" ("name")'
-        )
 
 
 def test_drop_index():
@@ -171,12 +174,9 @@ def test_drop_index():
     if isinstance(Migrate.ddl, MysqlDDL):
         assert ret == "ALTER TABLE `category` DROP INDEX `idx_category_name_8b0cb9`"
         assert ret_u == "ALTER TABLE `category` DROP INDEX `name`"
-    elif isinstance(Migrate.ddl, PostgresDDL):
-        assert ret == 'DROP INDEX "idx_category_name_8b0cb9"'
-        assert ret_u == 'DROP INDEX "uid_category_name_8b0cb9"'
     else:
-        assert ret == 'ALTER TABLE "category" DROP INDEX "idx_category_name_8b0cb9"'
-        assert ret_u == 'ALTER TABLE "category" DROP INDEX "uid_category_name_8b0cb9"'
+        assert ret == 'DROP INDEX IF EXISTS "idx_category_name_8b0cb9"'
+        assert ret_u == 'DROP INDEX IF EXISTS "uid_category_name_8b0cb9"'
 
 
 def test_add_fk():

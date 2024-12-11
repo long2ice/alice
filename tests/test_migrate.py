@@ -991,14 +991,14 @@ def test_migrate(mocker: MockerFixture):
 
     elif isinstance(Migrate.ddl, PostgresDDL):
         expected_upgrade_operators = {
-            'DROP INDEX "uid_category_title_f7fc03"',
+            'DROP INDEX IF EXISTS "uid_category_title_f7fc03"',
             'ALTER TABLE "category" ALTER COLUMN "name" DROP NOT NULL',
             'ALTER TABLE "category" ALTER COLUMN "slug" TYPE VARCHAR(100) USING "slug"::VARCHAR(100)',
             'ALTER TABLE "category" ALTER COLUMN "created_at" TYPE TIMESTAMPTZ USING "created_at"::TIMESTAMPTZ',
             'ALTER TABLE "category" RENAME COLUMN "user_id" TO "owner_id"',
             'ALTER TABLE "category" ADD CONSTRAINT "fk_category_user_110d4c63" FOREIGN KEY ("owner_id") REFERENCES "user" ("id") ON DELETE CASCADE',
             'ALTER TABLE "config" DROP COLUMN "name"',
-            'DROP INDEX "uid_config_name_2c83c8"',
+            'DROP INDEX IF EXISTS "uid_config_name_2c83c8"',
             'ALTER TABLE "config" ADD "user_id" INT NOT NULL',
             'ALTER TABLE "config" ADD CONSTRAINT "fk_config_user_17daa970" FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON DELETE CASCADE',
             'ALTER TABLE "config" ALTER COLUMN "status" DROP DEFAULT',
@@ -1007,7 +1007,7 @@ def test_migrate(mocker: MockerFixture):
             'ALTER TABLE "email" ADD "address" VARCHAR(200) NOT NULL',
             'ALTER TABLE "email" RENAME COLUMN "id" TO "email_id"',
             'ALTER TABLE "email" ALTER COLUMN "is_primary" TYPE BOOL USING "is_primary"::BOOL',
-            'DROP INDEX "uid_product_uuid_d33c18"',
+            'DROP INDEX IF EXISTS "uid_product_uuid_d33c18"',
             'ALTER TABLE "product" DROP COLUMN "uuid"',
             'ALTER TABLE "product" ALTER COLUMN "view_num" SET DEFAULT 0',
             'ALTER TABLE "product" RENAME COLUMN "image" TO "pic"',
@@ -1063,10 +1063,10 @@ def test_migrate(mocker: MockerFixture):
             'ALTER TABLE "product" ALTER COLUMN "is_reviewed" TYPE BOOL USING "is_reviewed"::BOOL',
             'ALTER TABLE "product" ALTER COLUMN "body" TYPE TEXT USING "body"::TEXT',
             'DROP TABLE IF EXISTS "product_user"',
-            'DROP INDEX "idx_product_name_869427"',
-            'DROP INDEX "idx_email_email_4a1a33"',
-            'DROP INDEX "uid_user_usernam_9987ab"',
-            'DROP INDEX "uid_product_name_869427"',
+            'DROP INDEX IF EXISTS "idx_product_name_869427"',
+            'DROP INDEX IF EXISTS "idx_email_email_4a1a33"',
+            'DROP INDEX IF EXISTS "uid_user_usernam_9987ab"',
+            'DROP INDEX IF EXISTS "uid_product_name_869427"',
             'DROP TABLE IF EXISTS "email_user"',
             'DROP TABLE IF EXISTS "newmodel"',
             'CREATE TABLE "config_category" (\n    "config_id" INT NOT NULL REFERENCES "config" ("id") ON DELETE CASCADE,\n    "category_id" INT NOT NULL REFERENCES "category" ("id") ON DELETE CASCADE\n)',
@@ -1090,6 +1090,30 @@ def test_sort_all_version_files(mocker):
             "11_datetime_update.py",
             "10_datetime_update.py",
             "2_datetime_update.py",
+        ],
+    )
+
+    Migrate.migrate_location = "."
+
+    assert Migrate.get_all_version_files() == [
+        "1_datetime_update.py",
+        "2_datetime_update.py",
+        "10_datetime_update.py",
+        "11_datetime_update.py",
+    ]
+
+
+def test_sort_files_containing_non_migrations(mocker):
+    mocker.patch(
+        "os.listdir",
+        return_value=[
+            "1_datetime_update.py",
+            "11_datetime_update.py",
+            "10_datetime_update.py",
+            "2_datetime_update.py",
+            "not_a_migration.py",
+            "999.py",
+            "123foo_not_a_migration.py",
         ],
     )
 

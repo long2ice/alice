@@ -10,6 +10,8 @@ from aerich.exceptions import NotSupportError
 class SqliteDDL(BaseDDL):
     schema_generator_cls = SqliteSchemaGenerator
     DIALECT = SqliteSchemaGenerator.DIALECT
+    _ADD_INDEX_TEMPLATE = 'CREATE {unique}INDEX "{index_name}" ON "{table_name}" ({column_names})'
+    _DROP_INDEX_TEMPLATE = 'DROP INDEX IF EXISTS "{index_name}"'
 
     def modify_column(self, model: "Type[Model]", field_object: dict, is_pk: bool = True):
         raise NotSupportError("Modify column is unsupported in SQLite.")
