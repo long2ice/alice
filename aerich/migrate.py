@@ -275,8 +275,8 @@ class Migrate:
                     length = len(old_m2m_fields)
                     field_index = {f["name"]: i for i, f in enumerate(new_m2m_fields)}
                     new_m2m_fields.sort(key=lambda field: field_index.get(field["name"], length))
-                for action, _, change in diff(old_m2m_fields, new_m2m_fields):
-                    if change[0][0] == "db_constraint":
+                for action, option, change in diff(old_m2m_fields, new_m2m_fields):
+                    if (option and option[-1] == "nullable") or change[0][0] == "db_constraint":
                         continue
                     new_value = change[0][1]
                     if isinstance(new_value, str):
