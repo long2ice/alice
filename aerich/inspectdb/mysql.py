@@ -40,16 +40,11 @@ where c.TABLE_SCHEMA = %s
   and c.TABLE_NAME = %s"""
         ret = await self.conn.execute_query_dict(sql, [self.database, table])
         for row in ret:
-            non_unique = row["NON_UNIQUE"]
-            if non_unique is None:
-                unique = False
-            else:
+            unique = index = False
+            if (non_unique := row["NON_UNIQUE"]) is not None:
                 unique = not non_unique
-            index_name = row["INDEX_NAME"]
-            if index_name is None:
-                index = False
-            else:
-                index = row["INDEX_NAME"] != "PRIMARY"
+            if (index_name := row["INDEX_NAME"]) is not None:
+                index = index_name != "PRIMARY"
             columns.append(
                 Column(
                     name=row["COLUMN_NAME"],

@@ -42,7 +42,7 @@ class Command:
     async def _upgrade(self, conn, version_file) -> None:
         file_path = Path(Migrate.migrate_location, version_file)
         m = import_py_file(file_path)
-        upgrade = getattr(m, "upgrade")
+        upgrade = m.upgrade
         await conn.execute_script(await upgrade(conn))
         await Aerich.create(
             version=version_file,
@@ -89,7 +89,7 @@ class Command:
             ) as conn:
                 file_path = Path(Migrate.migrate_location, file)
                 m = import_py_file(file_path)
-                downgrade = getattr(m, "downgrade")
+                downgrade = m.downgrade
                 downgrade_sql = await downgrade(conn)
                 if not downgrade_sql.strip():
                     raise DowngradeError("No downgrade items found")
@@ -133,7 +133,12 @@ class Command:
         location = self.location
         app = self.app
         dirname = Path(location, app)
-        dirname.mkdir(parents=True)
+        if not dirname.exists():
+            dirname.mkdir(parents=True)
+        else:
+            # If directory is empty, go ahead, otherwise raise FileExistsError
+            for unexpected_file in dirname.glob("*"):
+                raise FileExistsError(str(unexpected_file))
 
         await Tortoise.init(config=self.tortoise_config)
         connection = get_app_connection(self.tortoise_config, app)

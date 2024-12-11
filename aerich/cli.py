@@ -40,15 +40,17 @@ async def cli(ctx: Context, config, app) -> None:
             raise UsageError(
                 "You need to run `aerich init` first to create the config file.", ctx=ctx
             )
-        content = config_path.read_text()
+        content = config_path.read_text("utf-8")
         doc: dict = tomlkit.parse(content)
         try:
             tool = cast(Dict[str, str], doc["tool"]["aerich"])
             location = tool["location"]
             tortoise_orm = tool["tortoise_orm"]
             src_folder = tool.get("src_folder", CONFIG_DEFAULT_VALUES["src_folder"])
-        except NonExistentKey:
-            raise UsageError("You need run `aerich init` again when upgrading to aerich 0.6.0+.")
+        except NonExistentKey as e:
+            raise UsageError(
+                "You need run `aerich init` again when upgrading to aerich 0.6.0+."
+            ) from e
         add_src_path(src_folder)
         tortoise_config = get_tortoise_config(ctx, tortoise_orm)
         if not app:
@@ -182,10 +184,7 @@ async def init(ctx: Context, tortoise_orm, location, src_folder) -> None:
     add_src_path(src_folder)
     get_tortoise_config(ctx, tortoise_orm)
     config_path = Path(config_file)
-    if config_path.exists():
-        content = config_path.read_text()
-    else:
-        content = "[tool.aerich]"
+    content = config_path.read_bytes() if config_path.exists() else "[tool.aerich]"
     doc: dict = tomlkit.parse(content)
     table = tomlkit.table()
     table["tortoise_orm"] = tortoise_orm

@@ -2,6 +2,17 @@
 
 ## 0.8
 
+### [0.8.1](Unreleased)
+
+#### Fixed
+- Fix configuration file reading error when containing Chinese characters. (#286)
+- sqlite: failed to create/drop index. (#302)
+- PostgreSQL: Cannot drop constraint after deleting or rename FK on a model. (#378)
+- Sort m2m fields before comparing them with diff. (#271)
+
+#### Changed
+- Allow run `aerich init-db` with empty migration directories instead of abort with warnings. (#286)
+
 ### [0.8.0](../../releases/tag/v0.8.0) - 2024-12-04
 
 - Fix the issue of parameter concatenation when generating ORM with inspectdb (#331)

@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import os
 from typing import Generator
 
@@ -57,10 +58,8 @@ async def initialize_tests(event_loop, request) -> None:
     # Placing init outside the try block since it doesn't
     # establish connections to the DB eagerly.
     await Tortoise.init(config=tortoise_orm)
-    try:
+    with contextlib.suppress(DBConnectionError, OperationalError):
         await Tortoise._drop_databases()
-    except (DBConnectionError, OperationalError):
-        pass
     await Tortoise.init(config=tortoise_orm, _create_db=True)
     await generate_schema_for_client(Tortoise.get_connection("default"), safe=True)
 

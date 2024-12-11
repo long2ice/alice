@@ -3,6 +3,7 @@ from typing import Any, List, Type, cast
 
 from tortoise import BaseDBAsyncClient, Model
 from tortoise.backends.base.schema_generator import BaseSchemaGenerator
+from tortoise.backends.sqlite.schema_generator import SqliteSchemaGenerator
 
 from aerich.utils import is_default_function
 
@@ -122,7 +123,12 @@ class BaseDDL:
             unique = ""
             template = self._MODIFY_COLUMN_TEMPLATE
         else:
-            unique = "UNIQUE" if field_describe.get("unique") else ""
+            # sqlite does not support alter table to add unique column
+            unique = (
+                "UNIQUE"
+                if field_describe.get("unique") and self.DIALECT != SqliteSchemaGenerator.DIALECT
+                else ""
+            )
             template = self._ADD_COLUMN_TEMPLATE
         return template.format(
             table_name=db_table,

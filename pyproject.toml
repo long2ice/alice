@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aerich"
-version = "0.8.0"
+version = "0.8.1"
 description = "A database migrations tool for Tortoise ORM."
 authors = ["long2ice <long2ice@gmail.com>"]
 license = "Apache-2.0"
@@ -67,5 +67,7 @@ pretty = true
 python_version = "3.8"
 ignore_missing_imports = true
 
+[tool.ruff]
+line-length = 100
 [tool.ruff.lint]
 ignore = ['E501']

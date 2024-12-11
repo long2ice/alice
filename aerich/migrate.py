@@ -278,7 +278,11 @@ class Migrate:
                 # m2m fields
                 old_m2m_fields = cast(List[dict], old_model_describe.get("m2m_fields"))
                 new_m2m_fields = cast(List[dict], new_model_describe.get("m2m_fields"))
-                for action, option, change in diff(old_m2m_fields, new_m2m_fields):
+                if old_m2m_fields and len(new_m2m_fields) >= 2:
+                    length = len(old_m2m_fields)
+                    field_index = {f["name"]: i for i, f in enumerate(new_m2m_fields)}
+                    new_m2m_fields.sort(key=lambda field: field_index.get(field["name"], length))
+                for action, _, change in diff(old_m2m_fields, new_m2m_fields):
                     if change[0][0] == "db_constraint":
                         continue
                     new_value = change[0][1]
@@ -353,22 +357,14 @@ class Migrate:
                         old_data_field_name = cast(str, old_data_field.get("name"))
                         if len(changes) == 2:
                             # rename field
+                            name_diff = (old_data_field_name, new_data_field_name)
+                            column_diff = (
+                                old_data_field.get("db_column"),
+                                new_data_field.get("db_column"),
+                            )
                             if (
-                                changes[0]
-                                == (
-                                    "change",
-                                    "name",
-                                    (old_data_field_name, new_data_field_name),
-                                )
-                                and changes[1]
-                                == (
-                                    "change",
-                                    "db_column",
-                                    (
-                                        old_data_field.get("db_column"),
-                                        new_data_field.get("db_column"),
-                                    ),
-                                )
+                                changes[0] == ("change", "name", name_diff)
+                                and changes[1] == ("change", "db_column", column_diff)
                                 and old_data_field_name not in new_data_fields_name
                             ):
                                 if upgrade:
