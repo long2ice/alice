@@ -46,13 +46,13 @@ jobs:
         run: make check
       - name: Install TortoiseORM v0.21
         if: matrix.tortoise-orm == 'tortoise021'
-        run: poetry run pip install "tortoise>=0.21,<0.22"
+        run: poetry run pip install --upgrade "tortoise-orm>=0.21,<0.22"
       - name: Install TortoiseORM v0.22
         if: matrix.tortoise-orm == 'tortoise022'
-        run: poetry run pip install "tortoise>=0.22,<0.23"
+        run: poetry run pip install --upgrade "tortoise-orm>=0.22,<0.23"
       - name: Install TortoiseORM develop branch
         if: matrix.tortoise-orm == 'tortoisedev'
-        run: poetry run pip install "git+https://github.com/tortoise/tortoise-orm"
+        run: poetry run pip install --upgrade "git+https://github.com/tortoise/tortoise-orm"
       - name: CI
         env:
           MYSQL_PASS: root
