@@ -15,6 +15,7 @@
 
 #### Changed
 - Allow run `aerich init-db` with empty migration directories instead of abort with warnings. (#286)
+- Add version constraint for tortoise-orm. (#388)
 
 ### [0.8.0](../../releases/tag/v0.8.0) - 2024-12-04
 
