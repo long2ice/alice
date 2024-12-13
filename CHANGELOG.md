@@ -6,7 +6,7 @@
 
 #### Fixed
 - Migrate drop the wrong m2m field when model have multi m2m fields. (#376)
-- fix: error when there is __init__.py in the migration folder (#272)
+- fix: error when there is `__init__.py` in the migration folder (#272)
 - Setting null=false on m2m field causes migration to fail. (#334)
 - Fix NonExistentKey when running `aerich init` without `[tool]` section in config file. (#284)
 - Fix configuration file reading error when containing Chinese characters. (#286)

@@ -114,7 +114,7 @@ def _pick_match_to_head(m2m_fields: list[dict], field_info: dict) -> list[dict]:
     Example::
         >>> m2m_fields = [{'through': 'u1', 'name': 'u1'}, {'throught': 'u2', 'name': 'u2'}]
         >>> _pick_match_to_head(m2m_fields, {'through': 'u2', 'name': 'u2'})
-        [{'through': 'u2', 'name': 'u2'}, {'throught': 'u1', 'name': 'u1'}]
+        [{'through': 'u2', 'name': 'u2'}, {'through': 'u1', 'name': 'u1'}]
 
     """
     through = field_info["through"]

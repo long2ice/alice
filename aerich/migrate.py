@@ -74,7 +74,7 @@ class Migrate:
 
     @classmethod
     def _get_model(cls, model: str) -> Type[Model]:
-        return Tortoise.apps[cls.app][model]
+        return Tortoise.apps[cls.app].get(model)  # type: ignore
 
     @classmethod
     async def get_last_version(cls) -> Optional[Aerich]:
