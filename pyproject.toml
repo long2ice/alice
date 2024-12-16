@@ -19,9 +19,10 @@ python = "^3.8"
 tortoise-orm = "*"
 asyncpg = { version = "*", optional = true }
 asyncmy = { version = "^0.2.9", optional = true, allow-prereleases = true }
-pydantic = "^2.0"
+pydantic = "^2.0,!=2.7.0"
 dictdiffer = "*"
-tomlkit = "*"
+tomlkit = { version = "*", optional = true, python="<3.11" }
+tomli-w = { version = "^1.1.0", optional = true, python=">=3.11" }
 asyncclick = "^8.1.7.2"
 
 [tool.poetry.group.dev.dependencies]
@@ -41,6 +42,7 @@ mypy = "^1.10.0"
 [tool.poetry.extras]
 asyncmy = ["asyncmy"]
 asyncpg = ["asyncpg"]
+toml = ["tomlkit", "tomli-w"]
 
 
 [tool.aerich]
