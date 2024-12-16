@@ -114,7 +114,7 @@ def diff_fields(
 
     :param old_fields: previous field info list
     :param new_fields: current field info list
-    :param ident_key: if two dicts have the same ident_key, option is change; otherwise, is remove/add
+    :param ident_key: if two dicts have the same ident_key, action is change; otherwise, is remove/add
     :return: similar to dictdiffer.diff
 
     Example::
@@ -122,7 +122,8 @@ def diff_fields(
         >>> old = [{'through': 'a'}, {'through': 'b'}, {'through': 'c'}]
         >>> new = [{'through': 'a'}, {'through': 'c'}]  # remove the second element
         >>> list(diff(old, new))
-        [('change', [1, 'through'], ('b', 'c')), ('remove', '', [(2, {'through': 'c'})])]
+        [('change', [1, 'through'], ('b', 'c')),
+         ('remove', '', [(2, {'through': 'c'})])]
         >>> list(diff_fields(old, new))
         [('remove', '', [(0, {'through': 'b'})])]
 
