@@ -13,7 +13,12 @@ from tortoise.indexes import Index
 
 from aerich.ddl import BaseDDL
 from aerich.models import MAX_VERSION_LENGTH, Aerich
-from aerich.utils import diff_fields, get_app_connection, get_models_describe, is_default_function
+from aerich.utils import (
+    get_app_connection,
+    get_dict_diff_by_key,
+    get_models_describe,
+    is_default_function,
+)
 
 MIGRATE_TEMPLATE = """from tortoise import BaseDBAsyncClient
 
@@ -229,7 +234,7 @@ class Migrate:
     ) -> None:
         old_m2m_fields = cast(List[dict], old_model_describe.get("m2m_fields"))
         new_m2m_fields = cast(List[dict], new_model_describe.get("m2m_fields"))
-        for action, option, change in diff_fields(old_m2m_fields, new_m2m_fields):
+        for action, option, change in get_dict_diff_by_key(old_m2m_fields, new_m2m_fields):
             if (option and option[-1] == "nullable") or change[0][0] == "db_constraint":
                 continue
             new_value = change[0][1]

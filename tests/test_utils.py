@@ -1,4 +1,4 @@
-from aerich.utils import diff_fields, import_py_file
+from aerich.utils import get_dict_diff_by_key, import_py_file
 
 
 def test_import_py_file() -> None:
@@ -16,8 +16,8 @@ class TestDiffFields:
             {"name": "members", "through": "users_group"},
             {"name": "admins", "through": "admins_group"},
         ]
-        diffs = list(diff_fields(old, new))
-        assert type(diff_fields(old, new)).__name__ == "generator"
+        diffs = list(get_dict_diff_by_key(old, new))
+        assert type(get_dict_diff_by_key(old, new)).__name__ == "generator"
         assert len(diffs) == 1
         assert diffs == [("change", [0, "name"], ("users", "members"))]
 
@@ -30,7 +30,7 @@ class TestDiffFields:
             {"name": "admins", "through": "admins_group"},
             {"name": "members", "through": "users_group"},
         ]
-        diffs = list(diff_fields(old, new))
+        diffs = list(get_dict_diff_by_key(old, new))
         assert len(diffs) == 1
         assert diffs == [("change", [0, "name"], ("users", "members"))]
 
@@ -43,7 +43,7 @@ class TestDiffFields:
             {"name": "users", "through": "user_groups"},
             {"name": "admins", "through": "admin_groups"},
         ]
-        diffs = list(diff_fields(old, new))
+        diffs = list(get_dict_diff_by_key(old, new))
         assert len(diffs) == 4
         assert diffs == [
             ("remove", "", [(0, {"name": "users", "through": "users_group"})]),
@@ -61,7 +61,7 @@ class TestDiffFields:
             {"name": "users", "through": "user_groups"},
             {"name": "admins", "through": "admin_groups"},
         ]
-        diffs = list(diff_fields(old, new))
+        diffs = list(get_dict_diff_by_key(old, new))
         assert len(diffs) == 4
         assert diffs == [
             ("remove", "", [(0, {"name": "admins", "through": "admins_group"})]),
@@ -78,7 +78,7 @@ class TestDiffFields:
         new = [
             {"name": "admins", "through": "admins_group"},
         ]
-        diffs = list(diff_fields(old, new))
+        diffs = list(get_dict_diff_by_key(old, new))
         assert len(diffs) == 1
         assert diffs == [("remove", "", [(0, {"name": "users", "through": "users_group"})])]
 
@@ -90,7 +90,7 @@ class TestDiffFields:
             {"name": "users", "through": "users_group"},
             {"name": "admins", "through": "admins_group"},
         ]
-        diffs = list(diff_fields(old, new))
+        diffs = list(get_dict_diff_by_key(old, new))
         assert len(diffs) == 1
         assert diffs == [("add", "", [(0, {"name": "users", "through": "users_group"})])]
 
@@ -103,7 +103,7 @@ class TestDiffFields:
         new = [
             {"name": "admins", "through": "admins_group"},
         ]
-        diffs = list(diff_fields(old, new))
+        diffs = list(get_dict_diff_by_key(old, new))
         assert len(diffs) == 2
         assert diffs == [
             ("remove", "", [(0, {"name": "users", "through": "users_group"})]),
@@ -119,7 +119,7 @@ class TestDiffFields:
             {"name": "admins", "through": "admins_group"},
             {"name": "staffs", "through": "staffs_group"},
         ]
-        diffs = list(diff_fields(old, new))
+        diffs = list(get_dict_diff_by_key(old, new))
         assert len(diffs) == 2
         assert diffs == [
             ("add", "", [(0, {"name": "users", "through": "users_group"})]),
@@ -136,7 +136,7 @@ class TestDiffFields:
             {"name": "admins_new", "through": "admins_group"},
             {"name": "staffs_new", "through": "staffs_group"},
         ]
-        diffs = list(diff_fields(old, new))
+        diffs = list(get_dict_diff_by_key(old, new))
         assert len(diffs) == 3
         assert diffs == [
             ("change", [0, "name"], ("staffs", "staffs_new")),
@@ -155,7 +155,7 @@ class TestDiffFields:
             {"name": "admins_new", "through": "admins_group"},
             {"name": "staffs_new", "through": "staffs_group"},
         ]
-        diffs = list(diff_fields(old, new))
+        diffs = list(get_dict_diff_by_key(old, new))
         assert len(diffs) == 3
         assert diffs == [
             ("change", [0, "name"], ("staffs", "staffs_new")),

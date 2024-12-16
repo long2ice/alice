@@ -106,8 +106,8 @@ def import_py_file(file: Union[str, Path]) -> ModuleType:
     return module
 
 
-def diff_fields(
-    old_fields: list[dict], new_fields: list[dict], ident_key="through"
+def get_dict_diff_by_key(
+    old_fields: list[dict], new_fields: list[dict], key="through"
 ) -> Generator[tuple]:
     """
     Compare two list by ident_key instead of by index
@@ -124,7 +124,7 @@ def diff_fields(
         >>> list(diff(old, new))
         [('change', [1, 'through'], ('b', 'c')),
          ('remove', '', [(2, {'through': 'c'})])]
-        >>> list(diff_fields(old, new))
+        >>> list(get_dict_diff_by_key(old, new))
         [('remove', '', [(0, {'through': 'b'})])]
 
     """
@@ -132,11 +132,11 @@ def diff_fields(
     if length_old == 0 or length_new == 0 or length_old == length_new == 1:
         yield from diff(old_fields, new_fields)
     else:
-        new_throughs = {f["through"]: i for i, f in enumerate(new_fields)}
+        value_index: dict[str, int] = {f[key]: i for i, f in enumerate(new_fields)}
         additions = set(range(length_new))
         for field in old_fields:
-            through = field["through"]
-            if (index := new_throughs.get(through)) is not None:
+            value = field[key]
+            if (index := value_index.get(value)) is not None:
                 additions.remove(index)
                 yield from diff([field], [new_fields[index]])  # change
             else:
