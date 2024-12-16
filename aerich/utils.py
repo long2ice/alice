@@ -110,11 +110,11 @@ def get_dict_diff_by_key(
     old_fields: list[dict], new_fields: list[dict], key="through"
 ) -> Generator[tuple]:
     """
-    Compare two list by ident_key instead of by index
+    Compare two list by key instead of by index
 
     :param old_fields: previous field info list
     :param new_fields: current field info list
-    :param ident_key: if two dicts have the same ident_key, action is change; otherwise, is remove/add
+    :param key: if two dicts have the same value of this key, action is change; otherwise, is remove/add
     :return: similar to dictdiffer.diff
 
     Example::
