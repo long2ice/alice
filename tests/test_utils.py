@@ -1,4 +1,4 @@
-from aerich.utils import import_py_file, reorder_m2m_fields
+from aerich.utils import diff_fields, import_py_file
 
 
 def test_import_py_file() -> None:
@@ -6,7 +6,7 @@ def test_import_py_file() -> None:
     assert getattr(m, "import_py_file", None)
 
 
-class TestReorderM2M:
+class TestDiffFields:
     def test_the_same_through_order(self) -> None:
         old = [
             {"name": "users", "through": "users_group"},
@@ -16,9 +16,10 @@ class TestReorderM2M:
             {"name": "members", "through": "users_group"},
             {"name": "admins", "through": "admins_group"},
         ]
-        sorted_old, sorted_new = reorder_m2m_fields(old, new)
-        assert sorted_old == old
-        assert sorted_new == new
+        diffs = list(diff_fields(old, new))
+        assert type(diff_fields(old, new)).__name__ == "generator"
+        assert len(diffs) == 1
+        assert diffs == [("change", [0, "name"], ("users", "members"))]
 
     def test_same_through_with_different_orders(self) -> None:
         old = [
@@ -29,9 +30,9 @@ class TestReorderM2M:
             {"name": "admins", "through": "admins_group"},
             {"name": "members", "through": "users_group"},
         ]
-        sorted_old, sorted_new = reorder_m2m_fields(old, new)
-        assert sorted_old == old
-        assert sorted_new == new[::-1]
+        diffs = list(diff_fields(old, new))
+        assert len(diffs) == 1
+        assert diffs == [("change", [0, "name"], ("users", "members"))]
 
     def test_the_same_field_name_order(self) -> None:
         old = [
@@ -42,9 +43,14 @@ class TestReorderM2M:
             {"name": "users", "through": "user_groups"},
             {"name": "admins", "through": "admin_groups"},
         ]
-        sorted_old, sorted_new = reorder_m2m_fields(old, new)
-        assert sorted_old == old
-        assert sorted_new == new
+        diffs = list(diff_fields(old, new))
+        assert len(diffs) == 4
+        assert diffs == [
+            ("remove", "", [(0, {"name": "users", "through": "users_group"})]),
+            ("remove", "", [(0, {"name": "admins", "through": "admins_group"})]),
+            ("add", "", [(0, {"name": "users", "through": "user_groups"})]),
+            ("add", "", [(0, {"name": "admins", "through": "admin_groups"})]),
+        ]
 
     def test_same_field_name_with_different_orders(self) -> None:
         old = [
@@ -55,9 +61,14 @@ class TestReorderM2M:
             {"name": "users", "through": "user_groups"},
             {"name": "admins", "through": "admin_groups"},
         ]
-        sorted_old, sorted_new = reorder_m2m_fields(old, new)
-        assert sorted_old == old
-        assert sorted_new == new[::-1]
+        diffs = list(diff_fields(old, new))
+        assert len(diffs) == 4
+        assert diffs == [
+            ("remove", "", [(0, {"name": "admins", "through": "admins_group"})]),
+            ("remove", "", [(0, {"name": "users", "through": "users_group"})]),
+            ("add", "", [(0, {"name": "users", "through": "user_groups"})]),
+            ("add", "", [(0, {"name": "admins", "through": "admin_groups"})]),
+        ]
 
     def test_drop_one(self) -> None:
         old = [
@@ -67,10 +78,9 @@ class TestReorderM2M:
         new = [
             {"name": "admins", "through": "admins_group"},
         ]
-        sorted_old, sorted_new = reorder_m2m_fields(old, new)
-        assert sorted_old == old[::-1]
-        assert sorted_new == new
-        assert sorted_old[0] == new[0]
+        diffs = list(diff_fields(old, new))
+        assert len(diffs) == 1
+        assert diffs == [("remove", "", [(0, {"name": "users", "through": "users_group"})])]
 
     def test_add_one(self) -> None:
         old = [
@@ -80,10 +90,9 @@ class TestReorderM2M:
             {"name": "users", "through": "users_group"},
             {"name": "admins", "through": "admins_group"},
         ]
-        sorted_old, sorted_new = reorder_m2m_fields(old, new)
-        assert sorted_old == old
-        assert sorted_new == new[::-1]
-        assert sorted_old[0] == sorted_new[0]
+        diffs = list(diff_fields(old, new))
+        assert len(diffs) == 1
+        assert diffs == [("add", "", [(0, {"name": "users", "through": "users_group"})])]
 
     def test_drop_some(self) -> None:
         old = [
@@ -94,9 +103,12 @@ class TestReorderM2M:
         new = [
             {"name": "admins", "through": "admins_group"},
         ]
-        sorted_old, sorted_new = reorder_m2m_fields(old, new)
-        assert sorted_new == new
-        assert sorted_old[0] == old[1] == sorted_new[0]
+        diffs = list(diff_fields(old, new))
+        assert len(diffs) == 2
+        assert diffs == [
+            ("remove", "", [(0, {"name": "users", "through": "users_group"})]),
+            ("remove", "", [(0, {"name": "staffs", "through": "staffs_group"})]),
+        ]
 
     def test_add_some(self) -> None:
         old = [
@@ -107,9 +119,12 @@ class TestReorderM2M:
             {"name": "admins", "through": "admins_group"},
             {"name": "staffs", "through": "staffs_group"},
         ]
-        sorted_old, sorted_new = reorder_m2m_fields(old, new)
-        assert sorted_old == old
-        assert sorted_new[0] == new[-1] == sorted_old[0]
+        diffs = list(diff_fields(old, new))
+        assert len(diffs) == 2
+        assert diffs == [
+            ("add", "", [(0, {"name": "users", "through": "users_group"})]),
+            ("add", "", [(0, {"name": "admins", "through": "admins_group"})]),
+        ]
 
     def test_some_through_unchanged(self) -> None:
         old = [
@@ -121,9 +136,13 @@ class TestReorderM2M:
             {"name": "admins_new", "through": "admins_group"},
             {"name": "staffs_new", "through": "staffs_group"},
         ]
-        sorted_old, sorted_new = reorder_m2m_fields(old, new)
-        assert sorted_old == old
-        assert [i["through"] for i in sorted_new][: len(old)] == [i["through"] for i in sorted_old]
+        diffs = list(diff_fields(old, new))
+        assert len(diffs) == 3
+        assert diffs == [
+            ("change", [0, "name"], ("staffs", "staffs_new")),
+            ("change", [0, "name"], ("admins", "admins_new")),
+            ("add", "", [(0, {"name": "users", "through": "users_group"})]),
+        ]
 
     def test_some_unchanged_without_drop_or_add(self) -> None:
         old = [
@@ -136,6 +155,10 @@ class TestReorderM2M:
             {"name": "admins_new", "through": "admins_group"},
             {"name": "staffs_new", "through": "staffs_group"},
         ]
-        sorted_old, sorted_new = reorder_m2m_fields(old, new)
-        assert sorted_old == old
-        assert [i["through"] for i in sorted_new] == [i["through"] for i in sorted_old]
+        diffs = list(diff_fields(old, new))
+        assert len(diffs) == 3
+        assert diffs == [
+            ("change", [0, "name"], ("staffs", "staffs_new")),
+            ("change", [0, "name"], ("admins", "admins_new")),
+            ("change", [0, "name"], ("users", "users_new")),
+        ]
