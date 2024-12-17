@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 import importlib.util
 import os
 import re
 import sys
 from pathlib import Path
 from types import ModuleType
-from typing import Dict, Optional, Union
+from typing import Dict, Generator, Optional, Union
 
 from asyncclick import BadOptionUsage, ClickException, Context
+from dictdiffer import diff
 from tortoise import BaseDBAsyncClient, Tortoise
 
 
@@ -101,3 +104,43 @@ def import_py_file(file: Union[str, Path]) -> ModuleType:
     module = importlib.util.module_from_spec(spec)  # type:ignore[arg-type]
     spec.loader.exec_module(module)  # type:ignore[union-attr]
     return module
+
+
+def get_dict_diff_by_key(
+    old_fields: list[dict], new_fields: list[dict], key="through"
+) -> Generator[tuple]:
+    """
+    Compare two list by key instead of by index
+
+    :param old_fields: previous field info list
+    :param new_fields: current field info list
+    :param key: if two dicts have the same value of this key, action is change; otherwise, is remove/add
+    :return: similar to dictdiffer.diff
+
+    Example::
+
+        >>> old = [{'through': 'a'}, {'through': 'b'}, {'through': 'c'}]
+        >>> new = [{'through': 'a'}, {'through': 'c'}]  # remove the second element
+        >>> list(diff(old, new))
+        [('change', [1, 'through'], ('b', 'c')),
+         ('remove', '', [(2, {'through': 'c'})])]
+        >>> list(get_dict_diff_by_key(old, new))
+        [('remove', '', [(0, {'through': 'b'})])]
+
+    """
+    length_old, length_new = len(old_fields), len(new_fields)
+    if length_old == 0 or length_new == 0 or length_old == length_new == 1:
+        yield from diff(old_fields, new_fields)
+    else:
+        value_index: dict[str, int] = {f[key]: i for i, f in enumerate(new_fields)}
+        additions = set(range(length_new))
+        for field in old_fields:
+            value = field[key]
+            if (index := value_index.get(value)) is not None:
+                additions.remove(index)
+                yield from diff([field], [new_fields[index]])  # change
+            else:
+                yield from diff([field], [])  # remove
+        if additions:
+            for index in sorted(additions):
+                yield from diff([], [new_fields[index]])  # add

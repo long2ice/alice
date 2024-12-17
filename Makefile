@@ -12,7 +12,7 @@ up:
 	@poetry update
 
 deps:
-	@poetry install -E asyncpg -E asyncmy
+	@poetry install -E asyncpg -E asyncmy -E toml
 
 _style:
 	@isort -src $(checkfiles)

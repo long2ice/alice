@@ -80,6 +80,9 @@ class Product(Model):
 
 
 class Config(Model):
+    categories: fields.ManyToManyRelation[Category] = fields.ManyToManyField(
+        "models.Category", through="config_category_map", related_name="category_set"
+    )
     label = fields.CharField(max_length=200)
     key = fields.CharField(max_length=20)
     value: dict = fields.JSONField()

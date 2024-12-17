@@ -270,7 +270,48 @@ old_models_describe = {
         "backward_fk_fields": [],
         "o2o_fields": [],
         "backward_o2o_fields": [],
-        "m2m_fields": [],
+        "m2m_fields": [
+            {
+                "name": "category",
+                "field_type": "ManyToManyFieldInstance",
+                "python_type": "models.Category",
+                "generated": False,
+                "nullable": False,
+                "unique": False,
+                "indexed": False,
+                "default": None,
+                "description": None,
+                "docstring": None,
+                "constraints": {},
+                "model_name": "models.Category",
+                "related_name": "configs",
+                "forward_key": "category_id",
+                "backward_key": "config_id",
+                "through": "config_category",
+                "on_delete": "CASCADE",
+                "_generated": False,
+            },
+            {
+                "name": "categories",
+                "field_type": "ManyToManyFieldInstance",
+                "python_type": "models.Category",
+                "generated": False,
+                "nullable": False,
+                "unique": False,
+                "indexed": False,
+                "default": None,
+                "description": None,
+                "docstring": None,
+                "constraints": {},
+                "model_name": "models.Category",
+                "related_name": "config_set",
+                "forward_key": "category_id",
+                "backward_key": "config_id",
+                "through": "config_category_map",
+                "on_delete": "CASCADE",
+                "_generated": False,
+            },
+        ],
     },
     "models.Email": {
         "name": "models.Email",
@@ -898,6 +939,8 @@ def test_migrate(mocker: MockerFixture):
             "ALTER TABLE `product` MODIFY COLUMN `body` LONGTEXT NOT NULL",
             "ALTER TABLE `email` MODIFY COLUMN `is_primary` BOOL NOT NULL  DEFAULT 0",
             "CREATE TABLE `product_user` (\n    `product_id` INT NOT NULL REFERENCES `product` (`id`) ON DELETE CASCADE,\n    `user_id` INT NOT NULL REFERENCES `user` (`id`) ON DELETE CASCADE\n) CHARACTER SET utf8mb4",
+            "CREATE TABLE `config_category_map` (\n    `category_id` INT NOT NULL REFERENCES `category` (`id`) ON DELETE CASCADE,\n    `config_id` INT NOT NULL REFERENCES `config` (`id`) ON DELETE CASCADE\n) CHARACTER SET utf8mb4",
+            "DROP TABLE IF EXISTS `config_category`",
         }
         expected_downgrade_operators = {
             "ALTER TABLE `category` MODIFY COLUMN `name` VARCHAR(200) NOT NULL",
@@ -937,6 +980,8 @@ def test_migrate(mocker: MockerFixture):
             "ALTER TABLE `user` MODIFY COLUMN `longitude` DECIMAL(12,9) NOT NULL",
             "ALTER TABLE `product` MODIFY COLUMN `body` LONGTEXT NOT NULL",
             "ALTER TABLE `email` MODIFY COLUMN `is_primary` BOOL NOT NULL  DEFAULT 0",
+            "CREATE TABLE `config_category` (\n    `config_id` INT NOT NULL REFERENCES `config` (`id`) ON DELETE CASCADE,\n    `category_id` INT NOT NULL REFERENCES `category` (`id`) ON DELETE CASCADE\n) CHARACTER SET utf8mb4",
+            "DROP TABLE IF EXISTS `config_category_map`",
         }
         assert not set(Migrate.upgrade_operators).symmetric_difference(expected_upgrade_operators)
 
@@ -983,6 +1028,8 @@ def test_migrate(mocker: MockerFixture):
             'CREATE UNIQUE INDEX "uid_product_name_869427" ON "product" ("name", "type_db_alias")',
             'CREATE UNIQUE INDEX "uid_user_usernam_9987ab" ON "user" ("username")',
             'CREATE TABLE "product_user" (\n    "product_id" INT NOT NULL REFERENCES "product" ("id") ON DELETE CASCADE,\n    "user_id" INT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE\n)',
+            'CREATE TABLE "config_category_map" (\n    "category_id" INT NOT NULL REFERENCES "category" ("id") ON DELETE CASCADE,\n    "config_id" INT NOT NULL REFERENCES "config" ("id") ON DELETE CASCADE\n)',
+            'DROP TABLE IF EXISTS "config_category"',
         }
         expected_downgrade_operators = {
             'CREATE UNIQUE INDEX "uid_category_title_f7fc03" ON "category" ("title")',
@@ -1022,6 +1069,8 @@ def test_migrate(mocker: MockerFixture):
             'DROP INDEX IF EXISTS "uid_product_name_869427"',
             'DROP TABLE IF EXISTS "email_user"',
             'DROP TABLE IF EXISTS "newmodel"',
+            'CREATE TABLE "config_category" (\n    "config_id" INT NOT NULL REFERENCES "config" ("id") ON DELETE CASCADE,\n    "category_id" INT NOT NULL REFERENCES "category" ("id") ON DELETE CASCADE\n)',
+            'DROP TABLE IF EXISTS "config_category_map"',
         }
         assert not set(Migrate.upgrade_operators).symmetric_difference(expected_upgrade_operators)
         assert not set(Migrate.downgrade_operators).symmetric_difference(
