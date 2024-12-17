@@ -142,6 +142,16 @@ async def test_m2m_with_custom_through() -> None:
     await foo.groups.add(group)
     foo_group = await FooGroup.get(foo=foo, group=group)
     assert not foo_group.is_active
+
+
+@pytest.mark.asyncio
+async def test_add_m2m_field_after_init_db() -> None:
+    from models import Group
+    name = "5_" + uuid.uuid4().hex
+    foo = await Foo.create(name=name)
+    group = await Group.create(name=name+"1")
+    await foo.groups.add(group)
+    assert (await group.users.all().first()) == foo
 """
 
 
@@ -270,4 +280,25 @@ class FooGroup(Model):
         migration_file_1 = list(migrations_dir.glob("1_*.py"))[0]
         assert "foo_group" in migration_file_1.read_text()
         r = run_shell("pytest _test.py::test_m2m_with_custom_through")
+        assert r.returncode == 0
+
+        # add m2m field after init-db
+        new = """
+    groups = fields.ManyToManyField("models.Group", through="foo_group", related_name="users")
+
+class Group(Model):
+    name = fields.CharField(max_length=60)
+        """
+        if db_file.exists():
+            db_file.unlink()
+        if migrations_dir.exists():
+            shutil.rmtree(migrations_dir)
+        models_py.write_text(MODELS)
+        run_aerich("aerich init-db")
+        models_py.write_text(MODELS + new)
+        run_aerich("aerich migrate")
+        run_aerich("aerich upgrade")
+        migration_file_1 = list(migrations_dir.glob("1_*.py"))[0]
+        assert "foo_group" in migration_file_1.read_text()
+        r = run_shell("pytest _test.py::test_add_m2m_field_after_init_db")
         assert r.returncode == 0
