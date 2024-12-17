@@ -367,6 +367,8 @@ class Migrate:
                 new_data_fields_name = cast(List[str], [i.get("name") for i in new_data_fields])
 
                 # add fields or rename fields
+                locked_old_data_field_names: Set[str] = set()
+                locked_new_data_field_names: Set[str] = set()
                 for new_data_field_name in set(new_data_fields_name).difference(
                     set(old_data_fields_name)
                 ):
@@ -388,12 +390,19 @@ class Migrate:
                                 and old_data_field_name not in new_data_fields_name
                             ):
                                 if upgrade:
+                                    if new_data_field_name in locked_new_data_field_names or (
+                                        old_data_field_name in locked_old_data_field_names
+                                    ):
+                                        continue
                                     is_rename = click.prompt(
                                         f"Rename {old_data_field_name} to {new_data_field_name}?",
                                         default=True,
                                         type=bool,
                                         show_choices=True,
                                     )
+                                    if is_rename:
+                                        locked_new_data_field_names.add(new_data_field_name)
+                                        locked_old_data_field_names.add(old_data_field_name)
                                 else:
                                     is_rename = old_data_field_name in cls._rename_new
                                 if is_rename:
