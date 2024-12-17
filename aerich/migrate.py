@@ -234,6 +234,7 @@ class Migrate:
     ) -> None:
         old_m2m_fields = cast(List[dict], old_model_describe.get("m2m_fields"))
         new_m2m_fields = cast(List[dict], new_model_describe.get("m2m_fields"))
+        new_tables = {i["table"] for i in new_models.values()}
         for action, option, change in get_dict_diff_by_key(old_m2m_fields, new_m2m_fields):
             if (option and option[-1] == "nullable") or change[0][0] == "db_constraint":
                 continue
@@ -247,12 +248,14 @@ class Migrate:
                 table = new_value.get("through")
             if action == "add":
                 add = False
-                if upgrade and table not in cls._upgrade_m2m:
-                    cls._upgrade_m2m.append(table)
-                    add = True
-                elif not upgrade and table not in cls._downgrade_m2m:
-                    cls._downgrade_m2m.append(table)
-                    add = True
+                if upgrade:
+                    if table not in new_tables and table not in cls._upgrade_m2m:
+                        cls._upgrade_m2m.append(table)
+                        add = True
+                else:
+                    if table not in cls._downgrade_m2m:
+                        cls._downgrade_m2m.append(table)
+                        add = True
                 if add:
                     ref_desc = cast(dict, new_models.get(new_value.get("model_name")))
                     cls._add_operator(
