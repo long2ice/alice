@@ -232,8 +232,8 @@ class Migrate:
     def _handle_m2m_fields(
         cls, old_model_describe: Dict, new_model_describe: Dict, model, new_models, upgrade=True
     ) -> None:
-        old_m2m_fields = cast(List[dict], old_model_describe.get("m2m_fields"))
-        new_m2m_fields = cast(List[dict], new_model_describe.get("m2m_fields"))
+        old_m2m_fields = cast(List[dict], old_model_describe.get("m2m_fields", []))
+        new_m2m_fields = cast(List[dict], new_model_describe.get("m2m_fields", []))
         for action, option, change in get_dict_diff_by_key(old_m2m_fields, new_m2m_fields):
             if (option and option[-1] == "nullable") or change[0][0] == "db_constraint":
                 continue
@@ -288,10 +288,10 @@ class Migrate:
 
         for new_model_str, new_model_describe in new_models.items():
             model = cls._get_model(new_model_describe["name"].split(".")[1])
-
             if new_model_str not in old_models:
                 if upgrade:
                     cls._add_operator(cls.add_model(model), upgrade)
+                    cls._handle_m2m_fields({}, new_model_describe, model, new_models, upgrade)
                 else:
                     # we can't find origin model when downgrade, so skip
                     pass
