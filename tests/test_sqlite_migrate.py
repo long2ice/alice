@@ -236,3 +236,24 @@ def test_sqlite_migrate(tmp_path: Path) -> None:
         config_file.write_text('[project]\nname = "project"')
         run_aerich("init -t settings.TORTOISE_ORM")
         assert "[tool.aerich]" in config_file.read_text()
+
+        # add m2m with custom model for through
+        new = """
+    groups = fields.ManyToManyField("models.Group", through="foo_group")
+
+class Group(Model):
+    name = fields.CharField(max_length=60)
+
+class FooGroup(Model):
+    foo = fields.ForeignKeyField("models.Foo")
+    group = fields.ForeignKeyField("models.Group")
+    is_active = fields.BooleanField()
+
+    class Meta:
+        table = "foo_group"
+        """
+        models_py.write_text(MODELS + new)
+        run_aerich("aerich migrate")
+        run_aerich("aerich upgrade")
+        migration_file_1 = list(migrations_dir.glob("1_*.py"))[0]
+        assert "foo_group" in migration_file_1.read_text()

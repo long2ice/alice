@@ -228,13 +228,18 @@ class Migrate:
                 indexes.add(cast(Tuple[str, ...], tuple(x)))
         return indexes
 
+    @staticmethod
+    def _validate_custom_m2m_through(field: dict) -> None:
+        # TODO: Check whether field includes required fk columns
+        pass
+
     @classmethod
     def _handle_m2m_fields(
         cls, old_model_describe: Dict, new_model_describe: Dict, model, new_models, upgrade=True
     ) -> None:
         old_m2m_fields = cast(List[dict], old_model_describe.get("m2m_fields"))
         new_m2m_fields = cast(List[dict], new_model_describe.get("m2m_fields"))
-        new_tables = {i["table"] for i in new_models.values()}
+        new_tables: Dict[str, dict] = {field["table"]: field for field in new_models.values()}
         for action, option, change in get_dict_diff_by_key(old_m2m_fields, new_m2m_fields):
             if (option and option[-1] == "nullable") or change[0][0] == "db_constraint":
                 continue
@@ -249,7 +254,9 @@ class Migrate:
             if action == "add":
                 add = False
                 if upgrade:
-                    if table not in new_tables and table not in cls._upgrade_m2m:
+                    if field := new_tables.get(table):
+                        cls._validate_custom_m2m_through(field)
+                    elif table not in cls._upgrade_m2m:
                         cls._upgrade_m2m.append(table)
                         add = True
                 else:
