@@ -5,6 +5,7 @@
 ### [0.8.1](Unreleased)
 
 #### Fixed
+- fix: intermediate table for m2m relation not created. (#394)
 - Migrate add m2m field with custom through generate duplicated table. (#393)
 - Migrate drop the wrong m2m field when model have multi m2m fields. (#376)
 - KeyError raised when removing or renaming an existing model (#386)
