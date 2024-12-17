@@ -130,6 +130,18 @@ async def test_without_age_field() -> None:
     await Foo.create(name=name, age=0)
     obj = await Foo.get(name=name)
     assert getattr(obj, "age", None) is None
+
+
+@pytest.mark.asyncio
+async def test_m2m_with_custom_through() -> None:
+    from models import Group, FooGroup
+    name = "4_" + uuid.uuid4().hex
+    foo = await Foo.create(name=name)
+    group = await Group.create(name=name+"1")
+    await FooGroup.all().delete()
+    await foo.groups.add(group)
+    foo_group = await FooGroup.get(foo=foo, group=group)
+    assert not foo_group.is_active
 """
 
 
@@ -236,3 +248,26 @@ def test_sqlite_migrate(tmp_path: Path) -> None:
         config_file.write_text('[project]\nname = "project"')
         run_aerich("init -t settings.TORTOISE_ORM")
         assert "[tool.aerich]" in config_file.read_text()
+
+        # add m2m with custom model for through
+        new = """
+    groups = fields.ManyToManyField("models.Group", through="foo_group")
+
+class Group(Model):
+    name = fields.CharField(max_length=60)
+
+class FooGroup(Model):
+    foo = fields.ForeignKeyField("models.Foo")
+    group = fields.ForeignKeyField("models.Group")
+    is_active = fields.BooleanField(default=False)
+
+    class Meta:
+        table = "foo_group"
+        """
+        models_py.write_text(MODELS + new)
+        run_aerich("aerich migrate")
+        run_aerich("aerich upgrade")
+        migration_file_1 = list(migrations_dir.glob("1_*.py"))[0]
+        assert "foo_group" in migration_file_1.read_text()
+        r = run_shell("pytest _test.py::test_m2m_with_custom_through")
+        assert r.returncode == 0
