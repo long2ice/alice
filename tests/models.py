@@ -40,6 +40,7 @@ class Email(Model):
     is_primary = fields.BooleanField(default=False)
     address = fields.CharField(max_length=200)
     users: fields.ManyToManyRelation[User] = fields.ManyToManyField("models.User")
+    config: fields.OneToOneRelation["Config"] = fields.OneToOneField("models.Config")
 
 
 def default_name():
@@ -90,6 +91,8 @@ class Config(Model):
     user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
         "models.User", description="User"
     )
+
+    email: fields.OneToOneRelation["Email"]
 
 
 class NewModel(Model):
