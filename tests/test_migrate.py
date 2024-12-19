@@ -875,6 +875,7 @@ def test_migrate(mocker: MockerFixture):
     - drop field: User.avatar
     - add index: Email.email
     - add many to many: Email.users
+    - add one to one: Email.config
     - remove unique: Category.title
     - add unique: User.username
     - change column: length User.password
