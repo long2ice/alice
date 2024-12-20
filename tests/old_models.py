@@ -77,3 +77,17 @@ class Config(Model):
 
     class Meta:
         table = "configs"
+
+
+class DontManageMe(Model):
+    name = fields.CharField(max_length=50)
+
+    class Meta:
+        table = "dont_manage"
+
+
+class Ignore(Model):
+    name = fields.CharField(max_length=50)
+
+    class Meta:
+        managed = True

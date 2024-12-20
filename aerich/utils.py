@@ -89,8 +89,9 @@ def get_models_describe(app: str) -> Dict:
     """
     ret = {}
     for model in Tortoise.apps[app].values():
+        managed = getattr(model.Meta, "managed", True)
         describe = model.describe()
-        ret[describe.get("name")] = describe
+        ret[describe.get("name")] = dict(describe, skip=not managed)
     return ret
 
 
