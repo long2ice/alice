@@ -294,6 +294,7 @@ class Migrate:
         _aerich = f"{cls.app}.{cls._aerich}"
         old_models.pop(_aerich, None)
         new_models.pop(_aerich, None)
+        models_with_rename_field: Set[str] = set()
 
         for new_model_str, new_model_describe in new_models.items():
             model = cls._get_model(new_model_describe["name"].split(".")[1])
@@ -373,16 +374,17 @@ class Migrate:
                     new_data_field = cls.get_field_by_name(new_data_field_name, new_data_fields)
                     model_rename_fields = cls._rename_fields.get(new_model_str)
                     is_rename = False
-                    for old_data_field in old_data_fields:
+                    field_type = new_data_field.get("field_type")
+                    db_column = new_data_field.get("db_column")
+                    for old_data_field in sorted(
+                        old_data_fields, key=lambda f: f.get("field_type") != field_type
+                    ):
                         changes = list(diff(old_data_field, new_data_field))
                         old_data_field_name = cast(str, old_data_field.get("name"))
                         if len(changes) == 2:
                             # rename field
                             name_diff = (old_data_field_name, new_data_field_name)
-                            column_diff = (
-                                old_data_field.get("db_column"),
-                                new_data_field.get("db_column"),
-                            )
+                            column_diff = (old_data_field.get("db_column"), db_column)
                             if (
                                 changes[0] == ("change", "name", name_diff)
                                 and changes[1] == ("change", "db_column", column_diff)
@@ -393,8 +395,15 @@ class Migrate:
                                         new_data_field_name in rename_fields.values()
                                     ):
                                         continue
+                                    prefix = f"({new_model_str}) "
+                                    if new_model_str not in models_with_rename_field:
+                                        if models_with_rename_field:
+                                            # When there are multi rename fields with different models,
+                                            # print a empty line to warn that is another model
+                                            prefix = "\n" + prefix
+                                        models_with_rename_field.add(new_model_str)
                                     is_rename = click.prompt(
-                                        f"({new_model_str}) Rename {old_data_field_name} to {new_data_field_name}?",
+                                        f"{prefix}Rename {old_data_field_name} to {new_data_field_name}?",
                                         default=True,
                                         type=bool,
                                         show_choices=True,
@@ -403,15 +412,11 @@ class Migrate:
                                         rename_fields[old_data_field_name] = new_data_field_name
                                 else:
                                     is_rename = False
-                                    if model_rename_fields:
-                                        if new_data_field_name in model_rename_fields:
-                                            is_rename = True
-                                            if (
-                                                model_rename_fields[new_data_field_name]
-                                                != old_data_field_name
-                                            ):
-                                                continue
-                                        elif old_data_field_name in model_rename_fields:
+                                    if model_rename_fields and (
+                                        rename_to := model_rename_fields.get(new_data_field_name)
+                                    ):
+                                        is_rename = True
+                                        if rename_to != old_data_field_name:
                                             continue
                                 if is_rename:
                                     if upgrade:
