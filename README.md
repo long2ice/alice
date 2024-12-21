@@ -17,7 +17,7 @@ it\'s own migration solution.
 Just install from pypi:
 
 ```shell
-pip install aerich
+pip install "aerich[toml]"
 ```
 
 ## Quick Start

@@ -5,7 +5,11 @@
 ### [0.8.1](Unreleased)
 
 #### Fixed
-- fix: error when there is __init__.py in the migration folder (#272)
+- fix: intermediate table for m2m relation not created. (#394)
+- Migrate add m2m field with custom through generate duplicated table. (#393)
+- Migrate drop the wrong m2m field when model have multi m2m fields. (#376)
+- KeyError raised when removing or renaming an existing model (#386)
+- fix: error when there is `__init__.py` in the migration folder (#272)
 - Setting null=false on m2m field causes migration to fail. (#334)
 - Fix NonExistentKey when running `aerich init` without `[tool]` section in config file. (#284)
 - Fix configuration file reading error when containing Chinese characters. (#286)
@@ -16,6 +20,8 @@
 
 #### Changed
 - Allow run `aerich init-db` with empty migration directories instead of abort with warnings. (#286)
+- Add version constraint(>=0.21) for tortoise-orm. (#388)
+- Move `tomlkit` to optional and support `pip install aerich[toml]`. (#392)
 
 ### [0.8.0](../../releases/tag/v0.8.0) - 2024-12-04
 

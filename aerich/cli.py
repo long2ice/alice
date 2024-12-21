@@ -1,17 +1,24 @@
 import os
+import sys
 from pathlib import Path
 from typing import Dict, List, cast
 
 import asyncclick as click
-import tomlkit
 from asyncclick import Context, UsageError
-from tomlkit.exceptions import NonExistentKey
 
 from aerich import Command
 from aerich.enums import Color
 from aerich.exceptions import DowngradeError
 from aerich.utils import add_src_path, get_tortoise_config
 from aerich.version import __version__
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    try:
+        import tomli as tomllib
+    except ImportError:
+        import tomlkit as tomllib  # type: ignore
 
 CONFIG_DEFAULT_VALUES = {
     "src_folder": ".",
@@ -41,13 +48,13 @@ async def cli(ctx: Context, config, app) -> None:
                 "You need to run `aerich init` first to create the config file.", ctx=ctx
             )
         content = config_path.read_text("utf-8")
-        doc: dict = tomlkit.parse(content)
+        doc: dict = tomllib.loads(content)
         try:
             tool = cast(Dict[str, str], doc["tool"]["aerich"])
             location = tool["location"]
             tortoise_orm = tool["tortoise_orm"]
             src_folder = tool.get("src_folder", CONFIG_DEFAULT_VALUES["src_folder"])
-        except NonExistentKey as e:
+        except KeyError as e:
             raise UsageError(
                 "You need run `aerich init` again when upgrading to aerich 0.6.0+."
             ) from e
@@ -172,6 +179,10 @@ async def history(ctx: Context) -> None:
 )
 @click.pass_context
 async def init(ctx: Context, tortoise_orm, location, src_folder) -> None:
+    try:
+        import tomli_w as tomlkit
+    except ImportError:
+        import tomlkit  # type: ignore
     config_file = ctx.obj["config_file"]
 
     if os.path.isabs(src_folder):
@@ -184,9 +195,9 @@ async def init(ctx: Context, tortoise_orm, location, src_folder) -> None:
     add_src_path(src_folder)
     get_tortoise_config(ctx, tortoise_orm)
     config_path = Path(config_file)
-    content = config_path.read_bytes() if config_path.exists() else "[tool.aerich]"
-    doc: dict = tomlkit.parse(content)
-    table = tomlkit.table()
+    content = config_path.read_text("utf-8") if config_path.exists() else "[tool.aerich]"
+    doc: dict = tomllib.loads(content)
+    table: dict = getattr(tomlkit, "table", dict)()
     table["tortoise_orm"] = tortoise_orm
     table["location"] = location
     table["src_folder"] = src_folder
@@ -194,7 +205,6 @@ async def init(ctx: Context, tortoise_orm, location, src_folder) -> None:
         doc["tool"]["aerich"] = table
     except KeyError:
         doc["tool"] = {"aerich": table}
-
     config_path.write_text(tomlkit.dumps(doc))
 
     Path(location).mkdir(parents=True, exist_ok=True)

@@ -15,7 +15,12 @@ from tortoise.indexes import Index
 
 from aerich.ddl import BaseDDL
 from aerich.models import MAX_VERSION_LENGTH, Aerich
-from aerich.utils import get_app_connection, get_models_describe, is_default_function
+from aerich.utils import (
+    get_app_connection,
+    get_dict_diff_by_key,
+    get_models_describe,
+    is_default_function,
+)
 
 MIGRATE_TEMPLATE = """from tortoise import BaseDBAsyncClient
 
@@ -71,7 +76,7 @@ class Migrate:
 
     @classmethod
     def _get_model(cls, model: str) -> Type[Model]:
-        return Tortoise.apps[cls.app][model]
+        return Tortoise.apps[cls.app].get(model)  # type: ignore
 
     @classmethod
     async def get_last_version(cls) -> Optional[Aerich]:
@@ -227,6 +232,59 @@ class Migrate:
                 indexes.add(cast(Tuple[str, ...], tuple(x)))
         return indexes
 
+    @staticmethod
+    def _validate_custom_m2m_through(field: dict) -> None:
+        # TODO: Check whether field includes required fk columns
+        pass
+
+    @classmethod
+    def _handle_m2m_fields(
+        cls, old_model_describe: Dict, new_model_describe: Dict, model, new_models, upgrade=True
+    ) -> None:
+        old_m2m_fields = cast(List[dict], old_model_describe.get("m2m_fields", []))
+        new_m2m_fields = cast(List[dict], new_model_describe.get("m2m_fields", []))
+        new_tables: Dict[str, dict] = {field["table"]: field for field in new_models.values()}
+        for action, option, change in get_dict_diff_by_key(old_m2m_fields, new_m2m_fields):
+            if (option and option[-1] == "nullable") or change[0][0] == "db_constraint":
+                continue
+            new_value = change[0][1]
+            if isinstance(new_value, str):
+                for new_m2m_field in new_m2m_fields:
+                    if new_m2m_field["name"] == new_value:
+                        table = cast(str, new_m2m_field.get("through"))
+                        break
+            else:
+                table = new_value.get("through")
+            if action == "add":
+                add = False
+                if upgrade:
+                    if field := new_tables.get(table):
+                        cls._validate_custom_m2m_through(field)
+                    elif table not in cls._upgrade_m2m:
+                        cls._upgrade_m2m.append(table)
+                        add = True
+                else:
+                    if table not in cls._downgrade_m2m:
+                        cls._downgrade_m2m.append(table)
+                        add = True
+                if add:
+                    ref_desc = cast(dict, new_models.get(new_value.get("model_name")))
+                    cls._add_operator(
+                        cls.create_m2m(model, new_value, ref_desc),
+                        upgrade,
+                        fk_m2m_index=True,
+                    )
+            elif action == "remove":
+                add = False
+                if upgrade and table not in cls._upgrade_m2m:
+                    cls._upgrade_m2m.append(table)
+                    add = True
+                elif not upgrade and table not in cls._downgrade_m2m:
+                    cls._downgrade_m2m.append(table)
+                    add = True
+                if add:
+                    cls._add_operator(cls.drop_m2m(table), upgrade, True)
+
     @classmethod
     def diff_models(
         cls, old_models: Dict[str, dict], new_models: Dict[str, dict], upgrade=True
@@ -244,10 +302,10 @@ class Migrate:
 
         for new_model_str, new_model_describe in new_models.items():
             model = cls._get_model(new_model_describe["name"].split(".")[1])
-
             if new_model_str not in old_models:
                 if upgrade:
                     cls._add_operator(cls.add_model(model), upgrade)
+                    cls._handle_m2m_fields({}, new_model_describe, model, new_models, upgrade)
                 else:
                     # we can't find origin model when downgrade, so skip
                     pass
@@ -281,48 +339,9 @@ class Migrate:
                     if action == "change" and option == "name":
                         cls._add_operator(cls._rename_field(model, *change), upgrade)
                 # m2m fields
-                old_m2m_fields = cast(List[dict], old_model_describe.get("m2m_fields"))
-                new_m2m_fields = cast(List[dict], new_model_describe.get("m2m_fields"))
-                if old_m2m_fields and len(new_m2m_fields) >= 2:
-                    length = len(old_m2m_fields)
-                    field_index = {f["name"]: i for i, f in enumerate(new_m2m_fields)}
-                    new_m2m_fields.sort(key=lambda field: field_index.get(field["name"], length))
-                for action, option, change in diff(old_m2m_fields, new_m2m_fields):
-                    if (option and option[-1] == "nullable") or change[0][0] == "db_constraint":
-                        continue
-                    new_value = change[0][1]
-                    if isinstance(new_value, str):
-                        for new_m2m_field in new_m2m_fields:
-                            if new_m2m_field["name"] == new_value:
-                                table = cast(str, new_m2m_field.get("through"))
-                                break
-                    else:
-                        table = new_value.get("through")
-                    if action == "add":
-                        add = False
-                        if upgrade and table not in cls._upgrade_m2m:
-                            cls._upgrade_m2m.append(table)
-                            add = True
-                        elif not upgrade and table not in cls._downgrade_m2m:
-                            cls._downgrade_m2m.append(table)
-                            add = True
-                        if add:
-                            ref_desc = cast(dict, new_models.get(new_value.get("model_name")))
-                            cls._add_operator(
-                                cls.create_m2m(model, new_value, ref_desc),
-                                upgrade,
-                                fk_m2m_index=True,
-                            )
-                    elif action == "remove":
-                        add = False
-                        if upgrade and table not in cls._upgrade_m2m:
-                            cls._upgrade_m2m.append(table)
-                            add = True
-                        elif not upgrade and table not in cls._downgrade_m2m:
-                            cls._downgrade_m2m.append(table)
-                            add = True
-                        if add:
-                            cls._add_operator(cls.drop_m2m(table), upgrade, True)
+                cls._handle_m2m_fields(
+                    old_model_describe, new_model_describe, model, new_models, upgrade
+                )
                 # add unique_together
                 for index in new_unique_together.difference(old_unique_together):
                     cls._add_operator(cls._add_index(model, index, True), upgrade, True)
