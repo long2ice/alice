@@ -287,11 +287,10 @@ class Migrate:
         key: str,
         old_model_describe: Dict,
         new_model_describe: Dict,
-        model,
-        old_models,
-        new_models,
+        model: Type[Model],
+        old_models: Dict,
+        new_models: Dict,
         upgrade=True,
-        is_o2o=False,
     ) -> None:
         old_fk_fields = cast(List[dict], old_model_describe.get(key))
         new_fk_fields = cast(List[dict], new_model_describe.get(key))
@@ -319,9 +318,9 @@ class Migrate:
         cls,
         old_model_describe: Dict,
         new_model_describe: Dict,
-        model,
-        old_models,
-        new_models,
+        model: Type[Model],
+        old_models: Dict,
+        new_models: Dict,
         upgrade=True,
     ) -> None:
         key = "fk_fields"
@@ -334,9 +333,9 @@ class Migrate:
         cls,
         old_model_describe: Dict,
         new_model_describe: Dict,
-        model,
-        old_models,
-        new_models,
+        model: Type[Model],
+        old_models: Dict,
+        new_models: Dict,
         upgrade=True,
     ) -> None:
         key = "o2o_fields"
