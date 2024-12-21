@@ -1,4 +1,5 @@
-import hashlib
+from __future__ import annotations
+
 import importlib
 import os
 from datetime import datetime
@@ -6,6 +7,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Type, Union, cast
 
 import asyncclick as click
+import tortoise
 from dictdiffer import diff
 from tortoise import BaseDBAsyncClient, Model, Tortoise
 from tortoise.exceptions import OperationalError
@@ -201,21 +203,25 @@ class Migrate:
 
     @classmethod
     def _handle_indexes(cls, model: Type[Model], indexes: List[Union[Tuple[str], Index]]) -> list:
-        ret: list = []
+        if tortoise.__version__ > "0.22.2":
+            # The min version of tortoise is '0.11.0', so we can compare it by a `>`,
+            # tortoise>0.22.2 have __eq__/__hash__ with Index class since 313ee76.
+            return indexes
+        if index_classes := set(index.__class__ for index in indexes if isinstance(index, Index)):
+            # Leave magic patch here to compare with older version of tortoise-orm
+            # TODO: limit tortoise>0.22.2 in pyproject.toml and remove this function when v0.9.0 released
+            for index_cls in index_classes:
+                if index_cls(fields=("id",)) != index_cls(fields=("id",)):
 
-        def index_hash(self) -> str:
-            h = hashlib.new("MD5", usedforsecurity=False)  # type:ignore[call-arg]
-            h.update(
-                self.index_name(cls.ddl.schema_generator, model).encode()
-                + self.__class__.__name__.encode()
-            )
-            return h.hexdigest()
+                    def _hash(self) -> int:
+                        return hash((tuple(sorted(self.fields)), self.name, self.expressions))
 
-        for index in indexes:
-            if isinstance(index, Index):
-                index.__hash__ = index_hash  # type:ignore[method-assign,assignment]
-            ret.append(index)
-        return ret
+                    def _eq(self, other) -> bool:
+                        return type(self) is type(other) and self.__dict__ == other.__dict__
+
+                    setattr(index_cls, "__hash__", _hash)
+                    setattr(index_cls, "__eq__", _eq)
+        return indexes
 
     @classmethod
     def _get_indexes(cls, model, model_describe: dict) -> Set[Union[Index, Tuple[str, ...]]]:
@@ -281,6 +287,68 @@ class Migrate:
                     cls._add_operator(cls.drop_m2m(table), upgrade, True)
 
     @classmethod
+    def _handle_relational(
+        cls,
+        key: str,
+        old_model_describe: Dict,
+        new_model_describe: Dict,
+        model: Type[Model],
+        old_models: Dict,
+        new_models: Dict,
+        upgrade=True,
+    ) -> None:
+        old_fk_fields = cast(List[dict], old_model_describe.get(key))
+        new_fk_fields = cast(List[dict], new_model_describe.get(key))
+
+        old_fk_fields_name: List[str] = [i.get("name", "") for i in old_fk_fields]
+        new_fk_fields_name: List[str] = [i.get("name", "") for i in new_fk_fields]
+
+        # add
+        for new_fk_field_name in set(new_fk_fields_name).difference(set(old_fk_fields_name)):
+            fk_field = cls.get_field_by_name(new_fk_field_name, new_fk_fields)
+            if fk_field.get("db_constraint"):
+                ref_describe = cast(dict, new_models[fk_field["python_type"]])
+                sql = cls._add_fk(model, fk_field, ref_describe)
+                cls._add_operator(sql, upgrade, fk_m2m_index=True)
+        # drop
+        for old_fk_field_name in set(old_fk_fields_name).difference(set(new_fk_fields_name)):
+            old_fk_field = cls.get_field_by_name(old_fk_field_name, cast(List[dict], old_fk_fields))
+            if old_fk_field.get("db_constraint"):
+                ref_describe = cast(dict, old_models[old_fk_field["python_type"]])
+                sql = cls._drop_fk(model, old_fk_field, ref_describe)
+                cls._add_operator(sql, upgrade, fk_m2m_index=True)
+
+    @classmethod
+    def _handle_fk_fields(
+        cls,
+        old_model_describe: Dict,
+        new_model_describe: Dict,
+        model: Type[Model],
+        old_models: Dict,
+        new_models: Dict,
+        upgrade=True,
+    ) -> None:
+        key = "fk_fields"
+        cls._handle_relational(
+            key, old_model_describe, new_model_describe, model, old_models, new_models, upgrade
+        )
+
+    @classmethod
+    def _handle_o2o_fields(
+        cls,
+        old_model_describe: Dict,
+        new_model_describe: Dict,
+        model: Type[Model],
+        old_models: Dict,
+        new_models: Dict,
+        upgrade=True,
+    ) -> None:
+        key = "o2o_fields"
+        cls._handle_relational(
+            key, old_model_describe, new_model_describe, model, old_models, new_models, upgrade
+        )
+
+    @classmethod
     def diff_models(
         cls, old_models: Dict[str, dict], new_models: Dict[str, dict], upgrade=True
     ) -> None:
@@ -334,6 +402,13 @@ class Migrate:
                     # current only support rename pk
                     if action == "change" and option == "name":
                         cls._add_operator(cls._rename_field(model, *change), upgrade)
+                # fk fields
+                args = (old_model_describe, new_model_describe, model, old_models, new_models)
+                cls._handle_fk_fields(*args, upgrade=upgrade)
+                # o2o fields
+                cls._handle_o2o_fields(*args, upgrade=upgrade)
+                old_o2o_columns = [i["raw_field"] for i in old_model_describe.get("o2o_fields", [])]
+                new_o2o_columns = [i["raw_field"] for i in new_model_describe.get("o2o_fields", [])]
                 # m2m fields
                 cls._handle_m2m_fields(
                     old_model_describe, new_model_describe, model, new_models, upgrade
@@ -447,7 +522,10 @@ class Migrate:
                                         )
                     if not is_rename:
                         cls._add_operator(cls._add_field(model, new_data_field), upgrade)
-                        if new_data_field["indexed"]:
+                        if (
+                            new_data_field["indexed"]
+                            and new_data_field["db_column"] not in new_o2o_columns
+                        ):
                             cls._add_operator(
                                 cls._add_index(
                                     model, (new_data_field["db_column"],), new_data_field["unique"]
@@ -456,14 +534,14 @@ class Migrate:
                                 True,
                             )
                 # remove fields
-                model_rename_fields = cls._rename_fields.get(new_model_str)
+                rename_fields = cls._rename_fields.get(new_model_str)
                 for old_data_field_name in set(old_data_fields_name).difference(
                     set(new_data_fields_name)
                 ):
                     # don't remove field if is renamed
-                    if model_rename_fields and (
-                        (upgrade and old_data_field_name in model_rename_fields)
-                        or (not upgrade and old_data_field_name in model_rename_fields.values())
+                    if rename_fields and (
+                        (upgrade and old_data_field_name in rename_fields)
+                        or (not upgrade and old_data_field_name in rename_fields.values())
                     ):
                         continue
                     old_data_field = cls.get_field_by_name(old_data_field_name, old_data_fields)
@@ -472,7 +550,10 @@ class Migrate:
                         cls._remove_field(model, db_column),
                         upgrade,
                     )
-                    if old_data_field["indexed"]:
+                    if (
+                        old_data_field["indexed"]
+                        and old_data_field["db_column"] not in old_o2o_columns
+                    ):
                         is_unique_field = old_data_field.get("unique")
                         cls._add_operator(
                             cls._drop_index(model, {db_column}, is_unique_field),
@@ -480,38 +561,6 @@ class Migrate:
                             True,
                         )
 
-                old_fk_fields = cast(List[dict], old_model_describe.get("fk_fields"))
-                new_fk_fields = cast(List[dict], new_model_describe.get("fk_fields"))
-
-                old_fk_fields_name: List[str] = [i.get("name", "") for i in old_fk_fields]
-                new_fk_fields_name: List[str] = [i.get("name", "") for i in new_fk_fields]
-
-                # add fk
-                for new_fk_field_name in set(new_fk_fields_name).difference(
-                    set(old_fk_fields_name)
-                ):
-                    fk_field = cls.get_field_by_name(new_fk_field_name, new_fk_fields)
-                    if fk_field.get("db_constraint"):
-                        ref_describe = cast(dict, new_models[fk_field["python_type"]])
-                        cls._add_operator(
-                            cls._add_fk(model, fk_field, ref_describe),
-                            upgrade,
-                            fk_m2m_index=True,
-                        )
-                # drop fk
-                for old_fk_field_name in set(old_fk_fields_name).difference(
-                    set(new_fk_fields_name)
-                ):
-                    old_fk_field = cls.get_field_by_name(
-                        old_fk_field_name, cast(List[dict], old_fk_fields)
-                    )
-                    if old_fk_field.get("db_constraint"):
-                        ref_describe = cast(dict, old_models[old_fk_field["python_type"]])
-                        cls._add_operator(
-                            cls._drop_fk(model, old_fk_field, ref_describe),
-                            upgrade,
-                            fk_m2m_index=True,
-                        )
                 # change fields
                 for field_name in set(new_data_fields_name).intersection(set(old_data_fields_name)):
                     old_data_field = cls.get_field_by_name(field_name, old_data_fields)
