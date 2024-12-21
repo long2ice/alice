@@ -282,8 +282,9 @@ class Migrate:
                     cls._add_operator(cls.drop_m2m(table), upgrade, True)
 
     @classmethod
-    def _handle_fk_fields(
+    def _handle_relational(
         cls,
+        key: str,
         old_model_describe: Dict,
         new_model_describe: Dict,
         model,
@@ -292,7 +293,6 @@ class Migrate:
         upgrade=True,
         is_o2o=False,
     ) -> None:
-        key = "o2o_fields" if is_o2o else "fk_fields"
         old_fk_fields = cast(List[dict], old_model_describe.get(key))
         new_fk_fields = cast(List[dict], new_model_describe.get(key))
 
@@ -313,6 +313,36 @@ class Migrate:
                 ref_describe = cast(dict, old_models[old_fk_field["python_type"]])
                 sql = cls._drop_fk(model, old_fk_field, ref_describe)
                 cls._add_operator(sql, upgrade, fk_m2m_index=True)
+
+    @classmethod
+    def _handle_fk_fields(
+        cls,
+        old_model_describe: Dict,
+        new_model_describe: Dict,
+        model,
+        old_models,
+        new_models,
+        upgrade=True,
+    ) -> None:
+        key = "fk_fields"
+        cls._handle_relational(
+            key, old_model_describe, new_model_describe, model, old_models, new_models, upgrade
+        )
+
+    @classmethod
+    def _handle_o2o_fields(
+        cls,
+        old_model_describe: Dict,
+        new_model_describe: Dict,
+        model,
+        old_models,
+        new_models,
+        upgrade=True,
+    ) -> None:
+        key = "o2o_fields"
+        cls._handle_relational(
+            key, old_model_describe, new_model_describe, model, old_models, new_models, upgrade
+        )
 
     @classmethod
     def diff_models(
@@ -371,7 +401,7 @@ class Migrate:
                 args = (old_model_describe, new_model_describe, model, old_models, new_models)
                 cls._handle_fk_fields(*args, upgrade=upgrade)
                 # o2o fields
-                cls._handle_fk_fields(*args, upgrade=upgrade, is_o2o=True)
+                cls._handle_o2o_fields(*args, upgrade=upgrade)
                 old_o2o_columns = [i["raw_field"] for i in old_model_describe.get("o2o_fields", [])]
                 new_o2o_columns = [i["raw_field"] for i in new_model_describe.get("o2o_fields", [])]
                 # m2m fields
