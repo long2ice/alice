@@ -205,10 +205,11 @@ class Migrate:
     @classmethod
     def _handle_indexes(cls, model: Type[Model], indexes: List[Union[Tuple[str], Index]]) -> list:
         if tortoise.__version__ > "0.22.2":
+            # tortoise>0.22.2 have __eq__/__hash__ with Index class since 313ee76.
             return indexes
         if index_classes := set(index.__class__ for index in indexes if isinstance(index, Index)):
             # Leave magic patch here to compare with older version of tortoise-orm
-            # TODO: limit tortoise>=0.22.3 in pyproject.toml and remove this function when v0.9.0 released
+            # TODO: limit tortoise>0.22.2 in pyproject.toml and remove this function when v0.9.0 released
             for index_cls in index_classes:
                 if index_cls(fields=("id",)) != index_cls(fields=("id",)):
 
