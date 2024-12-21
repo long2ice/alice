@@ -205,6 +205,7 @@ class Migrate:
     @classmethod
     def _handle_indexes(cls, model: Type[Model], indexes: List[Union[Tuple[str], Index]]) -> list:
         if tortoise.__version__ > "0.22.2":
+            # The min version of tortoise is '0.11.0', so we can compare it by a `>`,
             # tortoise>0.22.2 have __eq__/__hash__ with Index class since 313ee76.
             return indexes
         if index_classes := set(index.__class__ for index in indexes if isinstance(index, Index)):
