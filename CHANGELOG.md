@@ -19,6 +19,7 @@
 
 #### Changed
 - Allow run `aerich init-db` with empty migration directories instead of abort with warnings. (#286)
+- Add version constraint(>=0.21) for tortoise-orm. (#388)
 - Move `tomlkit` to optional and support `pip install aerich[toml]`. (#392)
 
 ### [0.8.0](../../releases/tag/v0.8.0) - 2024-12-04

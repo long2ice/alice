@@ -16,7 +16,7 @@ include = ["CHANGELOG.md", "LICENSE", "README.md"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
-tortoise-orm = "*"
+tortoise-orm = ">=0.21"
 asyncpg = { version = "*", optional = true }
 asyncmy = { version = "^0.2.9", optional = true, allow-prereleases = true }
 pydantic = "^2.0,!=2.7.0"

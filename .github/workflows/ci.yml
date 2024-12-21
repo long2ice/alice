@@ -20,7 +20,11 @@ jobs:
         options: --health-cmd=pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        tortoise-orm:
+          - tortoise021
+          - tortoise022
+          - tortoisedev
     steps:
       - name: Start MySQL
         run: sudo systemctl start mysql.service
@@ -38,6 +42,17 @@ jobs:
         run: |
           pip install -U pip poetry
           poetry config virtualenvs.create false
+      - name: Install dependencies and check style
+        run: make check
+      - name: Install TortoiseORM v0.21
+        if: matrix.tortoise-orm == 'tortoise021'
+        run: poetry run pip install --upgrade "tortoise-orm>=0.21,<0.22"
+      - name: Install TortoiseORM v0.22
+        if: matrix.tortoise-orm == 'tortoise022'
+        run: poetry run pip install --upgrade "tortoise-orm>=0.22,<0.23"
+      - name: Install TortoiseORM develop branch
+        if: matrix.tortoise-orm == 'tortoisedev'
+        run: poetry run pip install --upgrade "git+https://github.com/tortoise/tortoise-orm"
       - name: CI
         env:
           MYSQL_PASS: root
@@ -46,4 +61,4 @@ jobs:
           POSTGRES_PASS: 123456
           POSTGRES_HOST: 127.0.0.1
           POSTGRES_PORT: 5432
-        run: make ci
+        run: make _testall
