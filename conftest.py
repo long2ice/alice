@@ -8,6 +8,7 @@ from tortoise import Tortoise, expand_db_url, generate_schema_for_client
 from tortoise.backends.asyncpg.schema_generator import AsyncpgSchemaGenerator
 from tortoise.backends.mysql.schema_generator import MySQLSchemaGenerator
 from tortoise.backends.sqlite.schema_generator import SqliteSchemaGenerator
+from tortoise.contrib.test import MEMORY_SQLITE
 from tortoise.exceptions import DBConnectionError, OperationalError
 
 from aerich.ddl.mysql import MysqlDDL
@@ -15,7 +16,6 @@ from aerich.ddl.postgres import PostgresDDL
 from aerich.ddl.sqlite import SqliteDDL
 from aerich.migrate import Migrate
 
-MEMORY_SQLITE = "sqlite://:memory:"
 db_url = os.getenv("TEST_DB", MEMORY_SQLITE)
 db_url_second = os.getenv("TEST_DB_SECOND", MEMORY_SQLITE)
 tortoise_orm = {
