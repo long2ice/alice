@@ -2,6 +2,11 @@
 
 ## 0.8
 
+### [0.8.2](Unreleased)
+
+#### Added
+- Support ignore table by settings `managed=False` in `Meta` class. (#397)
+
 ### [0.8.1](Unreleased)
 
 #### Fixed

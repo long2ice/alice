@@ -97,3 +97,26 @@ class Ignore(Model):
 
     class Meta:
         managed = True
+
+
+def main() -> None:
+    """Generate a python file for the old_models_describe"""
+    from pathlib import Path
+
+    from tortoise import run_async
+    from tortoise.contrib.test import init_memory_sqlite
+
+    from aerich.utils import get_models_describe
+
+    @init_memory_sqlite
+    async def run() -> None:
+        old_models_describe = get_models_describe("models")
+        p = Path("old_models_describe.py")
+        p.write_text(f"{old_models_describe = }", encoding="utf-8")
+        print(f"Write value to {p}\nYou can reformat it by `ruff format {p}`")
+
+    run_async(run())
+
+
+if __name__ == "__main__":
+    main()

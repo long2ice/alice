@@ -34,15 +34,14 @@ def get_app_connection_name(config, app_name: str) -> str:
     get connection name
     :param config:
     :param app_name:
-    :return:
+    :return: the default connection name (Usally it is 'default')
     """
-    app = config.get("apps").get(app_name)
-    if app:
-        return app.get("default_connection", "default")
-    raise BadOptionUsage(
-        option_name="--app",
-        message=f'Can\'t get app named "{app_name}"',
-    )
+    if not (app := config.get("apps").get(app_name)):
+        raise BadOptionUsage(
+            option_name="--app",
+            message=f'Can\'t get app named "{app_name}"',
+        )
+    return app.get("default_connection", "default")
 
 
 def get_app_connection(config, app) -> BaseDBAsyncClient:

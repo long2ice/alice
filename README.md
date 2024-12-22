@@ -255,6 +255,16 @@ tortoise_orm = {
 
 You only need to specify `aerich.models` in one app, and must specify `--app` when running `aerich migrate` and so on.
 
+### Ignore tables
+
+You can tell aerich to ignore table by setting `managed=False` in the `Meta` class.
+
+```py
+class MyModel(Model):
+    class Meta:
+        managed = False
+```
+
 ## Restore `aerich` workflow
 
 In some cases, such as broken changes from upgrade of `aerich`, you can't run `aerich migrate` or `aerich upgrade`, you
