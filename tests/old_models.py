@@ -2,6 +2,9 @@ import datetime
 from enum import IntEnum
 
 from tortoise import Model, fields
+from tortoise.indexes import Index
+
+from tests.indexes import CustomIndex
 
 
 class ProductType(IntEnum):
@@ -30,6 +33,9 @@ class User(Model):
     avatar = fields.CharField(max_length=200, default="")
     intro = fields.TextField(default="")
     longitude = fields.DecimalField(max_digits=12, decimal_places=9)
+
+    class Meta:
+        indexes = [Index(fields=("username", "is_active")), CustomIndex(fields=("is_superuser",))]
 
 
 class Email(Model):

@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 import tortoise
 from pytest_mock import MockerFixture
+from tortoise.indexes import Index
 
 from aerich.ddl.mysql import MysqlDDL
 from aerich.ddl.postgres import PostgresDDL
@@ -10,6 +11,7 @@ from aerich.ddl.sqlite import SqliteDDL
 from aerich.exceptions import NotSupportError
 from aerich.migrate import MIGRATE_TEMPLATE, Migrate
 from aerich.utils import get_models_describe
+from tests.indexes import CustomIndex
 
 # tortoise-orm>=0.21 changes IntField constraints
 # from {"ge": 1, "le": 2147483647} to {"ge": -2147483648, "le": 2147483647}
@@ -608,7 +610,7 @@ old_models_describe = {
         "description": None,
         "docstring": None,
         "unique_together": [],
-        "indexes": [],
+        "indexes": [Index(fields=("username", "is_active")), CustomIndex(fields=("is_superuser",))],
         "pk_field": {
             "name": "id",
             "field_type": "IntField",
@@ -875,6 +877,7 @@ def test_migrate(mocker: MockerFixture):
     - drop field: User.avatar
     - add index: Email.email
     - add many to many: Email.users
+    - add one to one: Email.config
     - remove unique: Category.title
     - add unique: User.username
     - change column: length User.password
@@ -914,6 +917,8 @@ def test_migrate(mocker: MockerFixture):
             "ALTER TABLE `config` ALTER COLUMN `status` DROP DEFAULT",
             "ALTER TABLE `config` MODIFY COLUMN `value` JSON NOT NULL",
             "ALTER TABLE `email` ADD `address` VARCHAR(200) NOT NULL",
+            "ALTER TABLE `email` ADD CONSTRAINT `fk_email_config_76a9dc71` FOREIGN KEY (`config_id`) REFERENCES `config` (`id`) ON DELETE CASCADE",
+            "ALTER TABLE `email` ADD `config_id` INT NOT NULL UNIQUE",
             "ALTER TABLE `configs` RENAME TO `config`",
             "ALTER TABLE `product` DROP COLUMN `uuid`",
             "ALTER TABLE `product` DROP INDEX `uuid`",
@@ -954,6 +959,8 @@ def test_migrate(mocker: MockerFixture):
             "ALTER TABLE `config` ALTER COLUMN `status` SET DEFAULT 1",
             "ALTER TABLE `email` ADD `user_id` INT NOT NULL",
             "ALTER TABLE `email` DROP COLUMN `address`",
+            "ALTER TABLE `email` DROP COLUMN `config_id`",
+            "ALTER TABLE `email` DROP FOREIGN KEY `fk_email_config_76a9dc71`",
             "ALTER TABLE `config` RENAME TO `configs`",
             "ALTER TABLE `product` RENAME COLUMN `pic` TO `image`",
             "ALTER TABLE `email` RENAME COLUMN `email_id` TO `id`",
@@ -1007,6 +1014,8 @@ def test_migrate(mocker: MockerFixture):
             'ALTER TABLE "email" ADD "address" VARCHAR(200) NOT NULL',
             'ALTER TABLE "email" RENAME COLUMN "id" TO "email_id"',
             'ALTER TABLE "email" ALTER COLUMN "is_primary" TYPE BOOL USING "is_primary"::BOOL',
+            'ALTER TABLE "email" ADD CONSTRAINT "fk_email_config_76a9dc71" FOREIGN KEY ("config_id") REFERENCES "config" ("id") ON DELETE CASCADE',
+            'ALTER TABLE "email" ADD "config_id" INT NOT NULL UNIQUE',
             'DROP INDEX IF EXISTS "uid_product_uuid_d33c18"',
             'ALTER TABLE "product" DROP COLUMN "uuid"',
             'ALTER TABLE "product" ALTER COLUMN "view_num" SET DEFAULT 0',
@@ -1048,6 +1057,8 @@ def test_migrate(mocker: MockerFixture):
             'ALTER TABLE "email" DROP COLUMN "address"',
             'ALTER TABLE "email" RENAME COLUMN "email_id" TO "id"',
             'ALTER TABLE "email" ALTER COLUMN "is_primary" TYPE BOOL USING "is_primary"::BOOL',
+            'ALTER TABLE "email" DROP COLUMN "config_id"',
+            'ALTER TABLE "email" DROP CONSTRAINT IF EXISTS "fk_email_config_76a9dc71"',
             'ALTER TABLE "product" ADD "uuid" INT NOT NULL UNIQUE',
             'CREATE UNIQUE INDEX "uid_product_uuid_d33c18" ON "product" ("uuid")',
             'ALTER TABLE "product" ALTER COLUMN "view_num" DROP DEFAULT',
