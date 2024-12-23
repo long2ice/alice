@@ -93,15 +93,26 @@ async def migrate(ctx: Context, name, empty) -> None:
     type=bool,
     help="Make migrations in a single transaction or not. Can be helpful for large migrations or creating concurrent indexes.",
 )
+@click.option(
+    "--fake",
+    default=False,
+    is_flag=True,
+    help="Mark migrations as run without actually running them.",
+)
 @click.pass_context
-async def upgrade(ctx: Context, in_transaction: bool) -> None:
+async def upgrade(ctx: Context, in_transaction: bool, fake: bool) -> None:
     command = ctx.obj["command"]
-    migrated = await command.upgrade(run_in_transaction=in_transaction)
+    migrated = await command.upgrade(run_in_transaction=in_transaction, fake=fake)
     if not migrated:
         click.secho("No upgrade items found", fg=Color.yellow)
     else:
         for version_file in migrated:
-            click.secho(f"Success upgrading to {version_file}", fg=Color.green)
+            if fake:
+                click.echo(
+                    f"Upgrading to {version_file}... " + click.style("FAKED", fg=Color.green)
+                )
+            else:
+                click.secho(f"Success upgrading to {version_file}", fg=Color.green)
 
 
 @cli.command(help="Downgrade to specified version.")
