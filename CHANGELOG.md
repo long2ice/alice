@@ -2,28 +2,46 @@
 
 ## 0.8
 
-### [0.8.1](Unreleased)
+### [0.8.1]*(Unreleased)*
 
 #### Fixed
-- fix: add o2o field does not create constraint when migrating. (#396)
-- Migration with duplicate renaming of columns in some cases. (#395)
-- fix: intermediate table for m2m relation not created. (#394)
-- Migrate add m2m field with custom through generate duplicated table. (#393)
-- Migrate drop the wrong m2m field when model have multi m2m fields. (#376)
-- KeyError raised when removing or renaming an existing model (#386)
-- fix: error when there is `__init__.py` in the migration folder (#272)
-- Setting null=false on m2m field causes migration to fail. (#334)
-- Fix NonExistentKey when running `aerich init` without `[tool]` section in config file. (#284)
-- Fix configuration file reading error when containing Chinese characters. (#286)
-- sqlite: failed to create/drop index. (#302)
-- PostgreSQL: Cannot drop constraint after deleting or rename FK on a model. (#378)
-- Fix create/drop indexes in every migration. (#377)
-- Sort m2m fields before comparing them with diff. (#271)
+- fix: add o2o field does not create constraint when migrating. ([#396])
+- Migration with duplicate renaming of columns in some cases. ([#395])
+- fix: intermediate table for m2m relation not created. ([#394])
+- Migrate add m2m field with custom through generate duplicated table. ([#393])
+- Migrate drop the wrong m2m field when model have multi m2m fields. ([#376])
+- KeyError raised when removing or renaming an existing model. ([#386])
+- fix: error when there is `__init__.py` in the migration folder. ([#272])
+- Setting null=false on m2m field causes migration to fail. ([#334])
+- Fix NonExistentKey when running `aerich init` without `[tool]` section in config file. ([#284])
+- Fix configuration file reading error when containing Chinese characters. ([#286])
+- sqlite: failed to create/drop index. ([#302])
+- PostgreSQL: Cannot drop constraint after deleting or rename FK on a model. ([#378])
+- Fix create/drop indexes in every migration. ([#377])
+- Sort m2m fields before comparing them with diff. ([#271])
 
 #### Changed
-- Allow run `aerich init-db` with empty migration directories instead of abort with warnings. (#286)
-- Add version constraint(>=0.21) for tortoise-orm. (#388)
-- Move `tomlkit` to optional and support `pip install aerich[toml]`. (#392)
+- Allow run `aerich init-db` with empty migration directories instead of abort with warnings. ([#286])
+- Add version constraint(>=0.21) for tortoise-orm. ([#388])
+- Move `tomlkit` to optional and support `pip install aerich[toml]`. ([#392])
+
+[#396]: https://github.com/tortoise/aerich/pull/396
+[#395]: https://github.com/tortoise/aerich/pull/395
+[#394]: https://github.com/tortoise/aerich/pull/394
+[#393]: https://github.com/tortoise/aerich/pull/393
+[#376]: https://github.com/tortoise/aerich/pull/376
+[#386]: https://github.com/tortoise/aerich/pull/386
+[#272]: https://github.com/tortoise/aerich/pull/272
+[#334]: https://github.com/tortoise/aerich/pull/334
+[#284]: https://github.com/tortoise/aerich/pull/284
+[#286]: https://github.com/tortoise/aerich/pull/286
+[#302]: https://github.com/tortoise/aerich/pull/302
+[#378]: https://github.com/tortoise/aerich/pull/378
+[#377]: https://github.com/tortoise/aerich/pull/377
+[#271]: https://github.com/tortoise/aerich/pull/271
+[#286]: https://github.com/tortoise/aerich/pull/286
+[#388]: https://github.com/tortoise/aerich/pull/388
+[#392]: https://github.com/tortoise/aerich/pull/392
 
 ### [0.8.0](../../releases/tag/v0.8.0) - 2024-12-04
 
@@ -32,6 +50,7 @@
 - Correct the click import. (#360)
 - Improve CLI help text and output. (#355)
 - Fix mysql drop unique index raises OperationalError. (#346)
+
   **Upgrade note:**
     1. Use column name as unique key name for mysql
     2. Drop support for Python3.7
