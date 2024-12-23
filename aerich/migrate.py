@@ -449,13 +449,14 @@ class Migrate:
                     is_rename = False
                     field_type = new_data_field.get("field_type")
                     db_column = new_data_field.get("db_column")
+                    new_name = set(new_data_field_name)
                     for old_data_field in sorted(
                         old_data_fields,
                         key=lambda f: (
                             f.get("field_type") != field_type,
                             # old field whose name have more same characters with new field's
                             # should be put in front of the other
-                            set(new_data_field_name).symmetric_difference(set(f.get("name", ""))),
+                            len(new_name.symmetric_difference(set(f.get("name", "")))),
                         ),
                     ):
                         changes = list(diff(old_data_field, new_data_field))
