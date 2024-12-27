@@ -2,6 +2,13 @@
 
 ## 0.8
 
+### [0.8.2]**(Unreleased)**
+
+#### Fixed
+- fix: inspectdb raise KeyError 'int2' for smallint. ([#401])
+
+[#401]: https://github.com/tortoise/aerich/pull/401
+
 ### [0.8.1](../../releases/tag/v0.8.1) - 2024-12-27
 
 #### Fixed
@@ -29,19 +36,18 @@
 [#395]: https://github.com/tortoise/aerich/pull/395
 [#394]: https://github.com/tortoise/aerich/pull/394
 [#393]: https://github.com/tortoise/aerich/pull/393
-[#376]: https://github.com/tortoise/aerich/pull/376
+[#392]: https://github.com/tortoise/aerich/pull/392
+[#388]: https://github.com/tortoise/aerich/pull/388
 [#386]: https://github.com/tortoise/aerich/pull/386
-[#272]: https://github.com/tortoise/aerich/pull/272
-[#334]: https://github.com/tortoise/aerich/pull/334
-[#284]: https://github.com/tortoise/aerich/pull/284
-[#286]: https://github.com/tortoise/aerich/pull/286
-[#302]: https://github.com/tortoise/aerich/pull/302
 [#378]: https://github.com/tortoise/aerich/pull/378
 [#377]: https://github.com/tortoise/aerich/pull/377
-[#271]: https://github.com/tortoise/aerich/pull/271
+[#376]: https://github.com/tortoise/aerich/pull/376
+[#334]: https://github.com/tortoise/aerich/pull/334
+[#302]: https://github.com/tortoise/aerich/pull/302
 [#286]: https://github.com/tortoise/aerich/pull/286
-[#388]: https://github.com/tortoise/aerich/pull/388
-[#392]: https://github.com/tortoise/aerich/pull/392
+[#284]: https://github.com/tortoise/aerich/pull/284
+[#272]: https://github.com/tortoise/aerich/pull/272
+[#271]: https://github.com/tortoise/aerich/pull/271
 
 ### [0.8.0](../../releases/tag/v0.8.0) - 2024-12-04
 
