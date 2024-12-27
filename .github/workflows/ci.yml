@@ -57,7 +57,7 @@ jobs:
       - name: Install TortoiseORM develop branch
         if: matrix.tortoise-orm == 'tortoisedev'
         run: |
-          poetry run pip uninstall tortoise-orm
+          poetry run pip uninstall -y tortoise-orm
           poetry run pip install --upgrade "git+https://github.com/tortoise/tortoise-orm"
       - name: CI
         env:
