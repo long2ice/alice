@@ -56,7 +56,7 @@ class Column(BaseModel):
                 length = ", ".join(length_parts) + ", "
         if self.null:
             null = "null=True, "
-        if self.default is not None:
+        if self.default is not None and not self.pk:
             if self.data_type in ("tinyint", "INT"):
                 default = f"default={'True' if self.default == '1' else 'False'}, "
             elif self.data_type == "bool":
@@ -158,11 +158,11 @@ class Inspect:
 
     @classmethod
     def int_field(cls, **kwargs) -> str:
-        return "{name} = fields.IntField({pk}{index}{comment})".format(**kwargs)
+        return "{name} = fields.IntField({pk}{index}{default}{comment})".format(**kwargs)
 
     @classmethod
     def smallint_field(cls, **kwargs) -> str:
-        return "{name} = fields.SmallIntField({pk}{index}{comment})".format(**kwargs)
+        return "{name} = fields.SmallIntField({pk}{index}{default}{comment})".format(**kwargs)
 
     @classmethod
     def bigint_field(cls, **kwargs) -> str:
