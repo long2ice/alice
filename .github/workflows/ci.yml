@@ -24,6 +24,7 @@ jobs:
         tortoise-orm:
           - tortoise021
           - tortoise022
+          - tortoise023
           - tortoisedev
     steps:
       - name: Start MySQL
@@ -50,6 +51,9 @@ jobs:
       - name: Install TortoiseORM v0.22
         if: matrix.tortoise-orm == 'tortoise022'
         run: poetry run pip install --upgrade "tortoise-orm>=0.22,<0.23"
+      - name: Install TortoiseORM v0.23
+        if: matrix.tortoise-orm == 'tortoise023'
+        run: poetry run pip install --upgrade "tortoise-orm>=0.23,<0.24"
       - name: Install TortoiseORM develop branch
         if: matrix.tortoise-orm == 'tortoisedev'
         run: poetry run pip install --upgrade "git+https://github.com/tortoise/tortoise-orm"
