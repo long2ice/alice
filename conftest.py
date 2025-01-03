@@ -61,7 +61,17 @@ async def initialize_tests(event_loop, request) -> None:
     with contextlib.suppress(DBConnectionError, OperationalError):
         await Tortoise._drop_databases()
     await Tortoise.init(config=tortoise_orm, _create_db=True)
-    await generate_schema_for_client(Tortoise.get_connection("default"), safe=True)
+    try:
+        await generate_schema_for_client(Tortoise.get_connection("default"), safe=True)
+    except OperationalError as e:
+        if (s := "IF NOT EXISTS") not in str(e):
+            raise e
+        # MySQL does not support `CREATE INDEX IF NOT EXISTS` syntax
+        client = Tortoise.get_connection("default")
+        generator = client.schema_generator(client)
+        schema = generator.get_create_schema_sql(safe=True)
+        schema = schema.replace(f" INDEX {s}", " INDEX")
+        await generator.generate_from_string(schema)
 
     client = Tortoise.get_connection("default")
     if client.schema_generator is MySQLSchemaGenerator:
