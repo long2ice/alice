@@ -1,3 +1,4 @@
+import re
 from enum import Enum
 from typing import Any, List, Type, cast
 
@@ -42,9 +43,11 @@ class BaseDDL:
         self.schema_generator = self.schema_generator_cls(client)
 
     def create_table(self, model: "Type[Model]") -> str:
-        return self.schema_generator._get_table_sql(model, True)["table_creation_string"].rstrip(
-            ";"
-        )
+        schema = self.schema_generator._get_table_sql(model, True)["table_creation_string"]
+        if tortoise.__version__ <= "0.23.0":
+            # Remove extra space
+            schema = re.sub(r'(["()A-Za-z])  (["()A-Za-z])', r"\1 \2", schema)
+        return schema.rstrip(";")
 
     def drop_table(self, table_name: str) -> str:
         return self._DROP_TABLE_TEMPLATE.format(table_name=table_name)
