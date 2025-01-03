@@ -85,7 +85,7 @@ def test_modify_column():
         assert ret0 == "ALTER TABLE `category` MODIFY COLUMN `name` VARCHAR(200)"
         assert (
             ret1
-            == "ALTER TABLE `user` MODIFY COLUMN `is_active` BOOL NOT NULL  COMMENT 'Is Active' DEFAULT 1"
+            == "ALTER TABLE `user` MODIFY COLUMN `is_active` BOOL NOT NULL COMMENT 'Is Active' DEFAULT 1"
         )
     elif isinstance(Migrate.ddl, PostgresDDL):
         assert (
