@@ -157,6 +157,19 @@ async def history(ctx: Context) -> None:
         click.secho(version, fg=Color.green)
 
 
+def _write_config(config_path, doc, table) -> None:
+    try:
+        import tomli_w as tomlkit
+    except ImportError:
+        import tomlkit  # type: ignore
+
+    try:
+        doc["tool"]["aerich"] = table
+    except KeyError:
+        doc["tool"] = {"aerich": table}
+    config_path.write_text(tomlkit.dumps(doc))
+
+
 @cli.command(help="Initialize aerich config and create migrations folder.")
 @click.option(
     "-t",
@@ -179,10 +192,6 @@ async def history(ctx: Context) -> None:
 )
 @click.pass_context
 async def init(ctx: Context, tortoise_orm, location, src_folder) -> None:
-    try:
-        import tomli_w as tomlkit
-    except ImportError:
-        import tomlkit  # type: ignore
     config_file = ctx.obj["config_file"]
 
     if os.path.isabs(src_folder):
@@ -197,20 +206,18 @@ async def init(ctx: Context, tortoise_orm, location, src_folder) -> None:
     config_path = Path(config_file)
     content = config_path.read_text("utf-8") if config_path.exists() else "[tool.aerich]"
     doc: dict = tomllib.loads(content)
-    table: dict = getattr(tomlkit, "table", dict)()
-    table["tortoise_orm"] = tortoise_orm
-    table["location"] = location
-    table["src_folder"] = src_folder
-    try:
-        doc["tool"]["aerich"] = table
-    except KeyError:
-        doc["tool"] = {"aerich": table}
-    config_path.write_text(tomlkit.dumps(doc))
+
+    table = {"tortoise_orm": tortoise_orm, "location": location, "src_folder": src_folder}
+    if (aerich_config := doc.get("tool", {}).get("aerich")) and all(
+        aerich_config.get(k) == v for k, v in table.items()
+    ):
+        click.echo(f"Aerich config {config_file} already inited.")
+    else:
+        _write_config(config_path, doc, table)
+        click.secho(f"Success writing aerich config to {config_file}", fg=Color.green)
 
     Path(location).mkdir(parents=True, exist_ok=True)
-
     click.secho(f"Success creating migrations folder {location}", fg=Color.green)
-    click.secho(f"Success writing aerich config to {config_file}", fg=Color.green)
 
 
 @cli.command(help="Generate schema and generate app migration folder.")

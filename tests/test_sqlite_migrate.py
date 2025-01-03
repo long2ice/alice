@@ -181,7 +181,11 @@ def test_sqlite_migrate(tmp_path: Path) -> None:
         if (db_file := Path("db.sqlite3")).exists():
             db_file.unlink()
         run_aerich("aerich init -t settings.TORTOISE_ORM")
+        config_file = Path("pyproject.toml")
+        modify_time = config_file.stat().st_mtime
         run_aerich("aerich init-db")
+        run_aerich("aerich init -t settings.TORTOISE_ORM")
+        assert modify_time == config_file.stat().st_mtime
         r = run_shell("pytest _test.py::test_allow_duplicate")
         assert r.returncode == 0
         # Add index
