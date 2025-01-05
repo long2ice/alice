@@ -132,18 +132,27 @@ async def upgrade(ctx: Context, in_transaction: bool, fake: bool) -> None:
     show_default=True,
     help="Also delete the migration files.",
 )
+@click.option(
+    "--fake",
+    default=False,
+    is_flag=True,
+    help="Mark migrations as run without actually running them.",
+)
 @click.pass_context
 @click.confirmation_option(
     prompt="Downgrade is dangerous: you might lose your data! Are you sure?",
 )
-async def downgrade(ctx: Context, version: int, delete: bool) -> None:
+async def downgrade(ctx: Context, version: int, delete: bool, fake: bool) -> None:
     command = ctx.obj["command"]
     try:
-        files = await command.downgrade(version, delete)
+        files = await command.downgrade(version, delete, fake=fake)
     except DowngradeError as e:
         return click.secho(str(e), fg=Color.yellow)
     for file in files:
-        click.secho(f"Success downgrading to {file}", fg=Color.green)
+        if fake:
+            click.echo(f"Downgrading to {file}... " + click.style("FAKED", fg=Color.green))
+        else:
+            click.secho(f"Success downgrading to {file}", fg=Color.green)
 
 
 @cli.command(help="Show currently available heads (unapplied migrations).")

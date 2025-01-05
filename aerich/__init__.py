@@ -69,7 +69,7 @@ class Command:
                 migrated.append(version_file)
         return migrated
 
-    async def downgrade(self, version: int, delete: bool) -> List[str]:
+    async def downgrade(self, version: int, delete: bool, fake=False) -> List[str]:
         ret: List[str] = []
         if version == -1:
             specified_version = await Migrate.get_last_version()
@@ -94,7 +94,8 @@ class Command:
                 downgrade_sql = await downgrade(conn)
                 if not downgrade_sql.strip():
                     raise DowngradeError("No downgrade items found")
-                await conn.execute_script(downgrade_sql)
+                if not fake:
+                    await conn.execute_script(downgrade_sql)
                 await version_obj.delete()
                 if delete:
                     os.unlink(file_path)
