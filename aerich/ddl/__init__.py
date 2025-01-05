@@ -1,6 +1,8 @@
+import re
 from enum import Enum
 from typing import Any, List, Type, cast
 
+import tortoise
 from tortoise import BaseDBAsyncClient, Model
 from tortoise.backends.base.schema_generator import BaseSchemaGenerator
 from tortoise.backends.sqlite.schema_generator import SqliteSchemaGenerator
@@ -41,9 +43,11 @@ class BaseDDL:
         self.schema_generator = self.schema_generator_cls(client)
 
     def create_table(self, model: "Type[Model]") -> str:
-        return self.schema_generator._get_table_sql(model, True)["table_creation_string"].rstrip(
-            ";"
-        )
+        schema = self.schema_generator._get_table_sql(model, True)["table_creation_string"]
+        if tortoise.__version__ <= "0.23.0":
+            # Remove extra space
+            schema = re.sub(r'(["()A-Za-z])  (["()A-Za-z])', r"\1 \2", schema)
+        return schema.rstrip(";")
 
     def drop_table(self, table_name: str) -> str:
         return self._DROP_TABLE_TEMPLATE.format(table_name=table_name)
@@ -125,31 +129,31 @@ class BaseDDL:
         else:
             # sqlite does not support alter table to add unique column
             unique = (
-                "UNIQUE"
+                " UNIQUE"
                 if field_describe.get("unique") and self.DIALECT != SqliteSchemaGenerator.DIALECT
                 else ""
             )
             template = self._ADD_COLUMN_TEMPLATE
-        return template.format(
-            table_name=db_table,
-            column=self.schema_generator._create_string(
-                db_column=db_column,
-                field_type=db_field_types.get(self.DIALECT, db_field_types.get("")),
-                nullable="NOT NULL" if not field_describe.get("nullable") else "",
-                unique=unique,
-                comment=(
-                    self.schema_generator._column_comment_generator(
-                        table=db_table,
-                        column=db_column,
-                        comment=description,
-                    )
-                    if description
-                    else ""
-                ),
-                is_primary_key=is_pk,
-                default=default,
+        column = self.schema_generator._create_string(
+            db_column=db_column,
+            field_type=db_field_types.get(self.DIALECT, db_field_types.get("")),
+            nullable=" NOT NULL" if not field_describe.get("nullable") else "",
+            unique=unique,
+            comment=(
+                self.schema_generator._column_comment_generator(
+                    table=db_table,
+                    column=db_column,
+                    comment=description,
+                )
+                if description
+                else ""
             ),
+            is_primary_key=is_pk,
+            default=default,
         )
+        if tortoise.__version__ <= "0.23.0":
+            column = column.replace("  ", " ")
+        return template.format(table_name=db_table, column=column)
 
     def drop_column(self, model: "Type[Model]", column_name: str) -> str:
         return self._DROP_COLUMN_TEMPLATE.format(

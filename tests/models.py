@@ -81,6 +81,7 @@ class Product(Model):
     pic = fields.CharField(max_length=200)
     body = fields.TextField()
     created_at = fields.DatetimeField(auto_now_add=True)
+    is_deleted = fields.BooleanField(default=False)
 
     class Meta:
         unique_together = (("name", "type"),)
