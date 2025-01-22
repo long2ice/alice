@@ -3,30 +3,11 @@ import os
 import shlex
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 from aerich.ddl.sqlite import SqliteDDL
 from aerich.migrate import Migrate
-
-if sys.version_info >= (3, 11):
-    from contextlib import chdir
-else:
-
-    class chdir(contextlib.AbstractContextManager):  # Copied from source code of Python3.13
-        """Non thread-safe context manager to change the current working directory."""
-
-        def __init__(self, path):
-            self.path = path
-            self._old_cwd = []
-
-        def __enter__(self):
-            self._old_cwd.append(os.getcwd())
-            os.chdir(self.path)
-
-        def __exit__(self, *excinfo):
-            os.chdir(self._old_cwd.pop())
-
+from tests._utils import chdir
 
 MODELS = """from __future__ import annotations
 

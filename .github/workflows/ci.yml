@@ -25,7 +25,8 @@ jobs:
           - tortoise021
           - tortoise022
           - tortoise023
-          - tortoisedev
+          # TODO: add dev back when drop python3.8 support
+          # - tortoisedev
     steps:
       - name: Start MySQL
         run: sudo systemctl start mysql.service
