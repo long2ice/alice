@@ -255,6 +255,17 @@ tortoise_orm = {
 
 You only need to specify `aerich.models` in one app, and must specify `--app` when running `aerich migrate` and so on.
 
+### Ignore tables
+
+You can tell aerich to ignore table by setting `managed=False` in the `Meta` class.
+
+```py
+class MyModel(Model):
+    class Meta:
+        managed = False
+```
+**Note** `managed=False` does not recognized by `tortoise-orm` and `aerich init-db`, it is only for `aerich migrate`.
+
 ## Restore `aerich` workflow
 
 In some cases, such as broken changes from upgrade of `aerich`, you can't run `aerich migrate` or `aerich upgrade`, you
@@ -276,6 +287,23 @@ from aerich import Command
 command = Command(tortoise_config=config, app='models')
 await command.init()
 await command.migrate('test')
+```
+
+## Upgrade/Downgrade with `--fake` option
+
+Marks the migrations up to the latest one(or back to the target one) as applied, but without actually running the SQL to change your database schema.
+
+- Upgrade
+
+```bash
+aerich upgrade --fake
+aerich --app models upgrade --fake
+```
+- Downgrade
+
+```bash
+aerich downgrade --fake -v 2
+aerich --app models downgrade --fake -v 2
 ```
 
 ## License

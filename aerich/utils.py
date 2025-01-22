@@ -6,7 +6,7 @@ import re
 import sys
 from pathlib import Path
 from types import ModuleType
-from typing import Dict, Generator, Optional, Union
+from typing import Generator, Optional, Union
 
 from asyncclick import BadOptionUsage, ClickException, Context
 from dictdiffer import diff
@@ -34,23 +34,19 @@ def get_app_connection_name(config, app_name: str) -> str:
     get connection name
     :param config:
     :param app_name:
-    :return:
+    :return: the default connection name (Usally it is 'default')
     """
-    app = config.get("apps").get(app_name)
-    if app:
+    if app := config.get("apps").get(app_name):
         return app.get("default_connection", "default")
-    raise BadOptionUsage(
-        option_name="--app",
-        message=f'Can\'t get app named "{app_name}"',
-    )
+    raise BadOptionUsage(option_name="--app", message=f'Can\'t get app named "{app_name}"')
 
 
 def get_app_connection(config, app) -> BaseDBAsyncClient:
     """
-    get connection name
+    get connection client
     :param config:
     :param app:
-    :return:
+    :return: client instance
     """
     return Tortoise.get_connection(get_app_connection_name(config, app))
 
@@ -81,7 +77,7 @@ def get_tortoise_config(ctx: Context, tortoise_orm: str) -> dict:
     return config
 
 
-def get_models_describe(app: str) -> Dict:
+def get_models_describe(app: str) -> dict:
     """
     get app models describe
     :param app:
@@ -89,8 +85,9 @@ def get_models_describe(app: str) -> Dict:
     """
     ret = {}
     for model in Tortoise.apps[app].values():
+        managed = getattr(model.Meta, "managed", True)
         describe = model.describe()
-        ret[describe.get("name")] = describe
+        ret[describe.get("name")] = dict(describe, skip=not managed)
     return ret
 
 

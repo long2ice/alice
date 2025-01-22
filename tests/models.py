@@ -86,6 +86,7 @@ class Product(Model):
     class Meta:
         unique_together = (("name", "type"),)
         indexes = (("name", "type"),)
+        managed = True
 
 
 class Config(Model):
@@ -101,6 +102,21 @@ class Config(Model):
     )
 
     email: fields.OneToOneRelation["Email"]
+
+    class Meta:
+        managed = True
+
+
+class DontManageMe(Model):
+    name = fields.CharField(max_length=50)
+
+    class Meta:
+        managed = False
+
+
+class Ignore(Model):
+    class Meta:
+        managed = False
 
 
 class NewModel(Model):
