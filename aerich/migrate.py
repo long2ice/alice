@@ -564,62 +564,58 @@ class Migrate:
 
                 # change fields
                 for field_name in set(new_data_fields_name).intersection(set(old_data_fields_name)):
-                    old_data_field = cls.get_field_by_name(field_name, old_data_fields)
-                    new_data_field = cls.get_field_by_name(field_name, new_data_fields)
-                    changes = diff(old_data_field, new_data_field)
-                    modified = False
-                    for change in changes:
-                        _, option, old_new = change
-                        if option == "indexed":
-                            # change index
-                            if old_new[0] is False and old_new[1] is True:
-                                unique = new_data_field.get("unique")
-                                cls._add_operator(
-                                    cls._add_index(model, (field_name,), unique), upgrade, True
-                                )
-                            else:
-                                unique = old_data_field.get("unique")
-                                cls._add_operator(
-                                    cls._drop_index(model, (field_name,), unique), upgrade, True
-                                )
-                        elif option == "db_field_types.":
-                            if new_data_field.get("field_type") == "DecimalField":
-                                # modify column
-                                cls._add_operator(
-                                    cls._modify_field(model, new_data_field),
-                                    upgrade,
-                                )
-                            else:
-                                continue
-                        elif option == "default":
-                            if not (
-                                is_default_function(old_new[0]) or is_default_function(old_new[1])
-                            ):
-                                # change column default
-                                cls._add_operator(
-                                    cls._alter_default(model, new_data_field), upgrade
-                                )
-                        elif option == "unique":
-                            # because indexed include it
-                            continue
-                        elif option == "nullable":
-                            # change nullable
-                            cls._add_operator(cls._alter_null(model, new_data_field), upgrade)
-                        elif option == "description":
-                            # change comment
-                            cls._add_operator(cls._set_comment(model, new_data_field), upgrade)
-                        else:
-                            if modified:
-                                continue
-                            # modify column
-                            cls._add_operator(
-                                cls._modify_field(model, new_data_field),
-                                upgrade,
-                            )
-                            modified = True
+                    cls._handle_field_changes(
+                        model, field_name, old_data_fields, new_data_fields, upgrade
+                    )
 
         for old_model in old_models.keys() - new_models.keys():
             cls._add_operator(cls.drop_model(old_models[old_model]["table"]), upgrade)
+
+    @classmethod
+    def _handle_field_changes(
+        cls, model, field_name, old_data_fields, new_data_fields, upgrade
+    ) -> None:
+        old_data_field = cls.get_field_by_name(field_name, old_data_fields)
+        new_data_field = cls.get_field_by_name(field_name, new_data_fields)
+        changes = list(diff(old_data_field, new_data_field))
+        options = {c[1] for c in changes}
+        modified = False
+        for change in changes:
+            _, option, old_new = change
+            if option == "indexed":
+                # change index
+                if old_new[0] is False and old_new[1] is True:
+                    unique = new_data_field.get("unique")
+                    cls._add_operator(cls._add_index(model, (field_name,), unique), upgrade, True)
+                else:
+                    unique = old_data_field.get("unique")
+                    cls._add_operator(cls._drop_index(model, (field_name,), unique), upgrade, True)
+            elif option == "db_field_types.":
+                if new_data_field.get("field_type") == "DecimalField":
+                    # modify column
+                    cls._add_operator(cls._modify_field(model, new_data_field), upgrade)
+            elif option == "default":
+                if not (is_default_function(old_new[0]) or is_default_function(old_new[1])):
+                    # change column default
+                    cls._add_operator(cls._alter_default(model, new_data_field), upgrade)
+            elif option == "unique":
+                if "indexed" in options:
+                    # indexed include it
+                    continue
+                # Change unique for indexed field: `db_index=True, unique=False` --> `db_index=True, unique=True`
+                pass
+            elif option == "nullable":
+                # change nullable
+                cls._add_operator(cls._alter_null(model, new_data_field), upgrade)
+            elif option == "description":
+                # change comment
+                cls._add_operator(cls._set_comment(model, new_data_field), upgrade)
+            else:
+                if modified:
+                    continue
+                # modify column
+                cls._add_operator(cls._modify_field(model, new_data_field), upgrade)
+                modified = True
 
     @classmethod
     def rename_table(cls, model: Type[Model], old_table_name: str, new_table_name: str) -> str:
