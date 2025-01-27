@@ -7,7 +7,11 @@
 #### Fixed
 - fix: inspectdb raise KeyError 'int2' for smallint. ([#401])
 
+### Changed
+- Refactored version management to use `importlib.metadata.version(__package__)` instead of hardcoded version string (#412)
+
 [#401]: https://github.com/tortoise/aerich/pull/401
+[#412]: https://github.com/tortoise/aerich/pull/412
 
 ### [0.8.1](../../releases/tag/v0.8.1) - 2024-12-27
 
