@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest
@@ -12,6 +14,14 @@ from aerich.exceptions import NotSupportError
 from aerich.migrate import MIGRATE_TEMPLATE, Migrate
 from aerich.utils import get_models_describe
 from tests.indexes import CustomIndex
+
+
+def describe_index(idx: Index) -> Index | dict:
+    # tortoise-orm>=0.24 changes Index desribe to be dict
+    if tortoise.__version__ < "0.24":
+        return idx
+    return idx.describe()  # type:ignore
+
 
 # tortoise-orm>=0.21 changes IntField constraints
 # from {"ge": 1, "le": 2147483647} to {"ge": -2147483648, "le": 2147483647}
@@ -640,7 +650,10 @@ old_models_describe = {
         "description": None,
         "docstring": None,
         "unique_together": [],
-        "indexes": [Index(fields=("username", "is_active")), CustomIndex(fields=("is_superuser",))],
+        "indexes": [
+            describe_index(Index(fields=("username", "is_active"))),
+            describe_index(CustomIndex(fields=("is_superuser",))),
+        ],
         "pk_field": {
             "name": "id",
             "field_type": "IntField",
@@ -958,7 +971,6 @@ def test_migrate(mocker: MockerFixture):
             "ALTER TABLE `config` ADD `user_id` INT NOT NULL COMMENT 'User'",
             "ALTER TABLE `config` ADD CONSTRAINT `fk_config_user_17daa970` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE",
             "ALTER TABLE `config` ALTER COLUMN `status` DROP DEFAULT",
-            "ALTER TABLE `config` MODIFY COLUMN `value` JSON NOT NULL",
             "ALTER TABLE `email` ADD `address` VARCHAR(200) NOT NULL",
             "ALTER TABLE `email` ADD CONSTRAINT `fk_email_config_76a9dc71` FOREIGN KEY (`config_id`) REFERENCES `config` (`id`) ON DELETE CASCADE",
             "ALTER TABLE `email` ADD `config_id` INT NOT NULL UNIQUE",
@@ -971,23 +983,24 @@ def test_migrate(mocker: MockerFixture):
             "ALTER TABLE `email` ADD INDEX `idx_email_email_4a1a33` (`email`)",
             "ALTER TABLE `product` ADD UNIQUE INDEX `uid_product_name_869427` (`name`, `type_db_alias`)",
             "ALTER TABLE `product` ALTER COLUMN `view_num` SET DEFAULT 0",
-            "ALTER TABLE `product` MODIFY COLUMN `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)",
             "ALTER TABLE `product` RENAME COLUMN `is_delete` TO `is_deleted`",
             "ALTER TABLE `product` RENAME COLUMN `is_review` TO `is_reviewed`",
             "ALTER TABLE `user` DROP COLUMN `avatar`",
             "ALTER TABLE `user` MODIFY COLUMN `password` VARCHAR(100) NOT NULL",
-            "ALTER TABLE `user` MODIFY COLUMN `intro` LONGTEXT NOT NULL",
-            "ALTER TABLE `user` MODIFY COLUMN `last_login` DATETIME(6) NOT NULL COMMENT 'Last Login'",
             "ALTER TABLE `user` MODIFY COLUMN `longitude` DECIMAL(10,8) NOT NULL",
             "ALTER TABLE `user` ADD UNIQUE INDEX `username` (`username`)",
             "CREATE TABLE `email_user` (\n    `email_id` INT NOT NULL REFERENCES `email` (`email_id`) ON DELETE CASCADE,\n    `user_id` INT NOT NULL REFERENCES `user` (`id`) ON DELETE CASCADE\n) CHARACTER SET utf8mb4",
             "CREATE TABLE IF NOT EXISTS `newmodel` (\n    `id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,\n    `name` VARCHAR(50) NOT NULL\n) CHARACTER SET utf8mb4",
-            "ALTER TABLE `category` MODIFY COLUMN `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)",
-            "ALTER TABLE `product` MODIFY COLUMN `body` LONGTEXT NOT NULL",
             "CREATE TABLE `product_user` (\n    `product_id` INT NOT NULL REFERENCES `product` (`id`) ON DELETE CASCADE,\n    `user_id` INT NOT NULL REFERENCES `user` (`id`) ON DELETE CASCADE\n) CHARACTER SET utf8mb4",
             "CREATE TABLE `config_category_map` (\n    `category_id` INT NOT NULL REFERENCES `category` (`id`) ON DELETE CASCADE,\n    `config_id` INT NOT NULL REFERENCES `config` (`id`) ON DELETE CASCADE\n) CHARACTER SET utf8mb4",
             "DROP TABLE IF EXISTS `config_category`",
         }
+        upgrade_operators = set(Migrate.upgrade_operators)
+        upgrade_more_than_expected = upgrade_operators - expected_upgrade_operators
+        assert not upgrade_more_than_expected
+        upgrade_less_than_expected = expected_upgrade_operators - upgrade_operators
+        assert not upgrade_less_than_expected
+
         expected_downgrade_operators = {
             "ALTER TABLE `category` MODIFY COLUMN `name` VARCHAR(200) NOT NULL",
             "ALTER TABLE `category` MODIFY COLUMN `slug` VARCHAR(200) NOT NULL",
@@ -1020,28 +1033,21 @@ def test_migrate(mocker: MockerFixture):
             "DROP TABLE IF EXISTS `email_user`",
             "DROP TABLE IF EXISTS `newmodel`",
             "DROP TABLE IF EXISTS `product_user`",
-            "ALTER TABLE `user` MODIFY COLUMN `intro` LONGTEXT NOT NULL",
-            "ALTER TABLE `config` MODIFY COLUMN `value` TEXT NOT NULL",
-            "ALTER TABLE `category` MODIFY COLUMN `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)",
-            "ALTER TABLE `product` MODIFY COLUMN `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)",
-            "ALTER TABLE `user` MODIFY COLUMN `last_login` DATETIME(6) NOT NULL COMMENT 'Last Login'",
             "ALTER TABLE `user` MODIFY COLUMN `longitude` DECIMAL(12,9) NOT NULL",
-            "ALTER TABLE `product` MODIFY COLUMN `body` LONGTEXT NOT NULL",
             "CREATE TABLE `config_category` (\n    `config_id` INT NOT NULL REFERENCES `config` (`id`) ON DELETE CASCADE,\n    `category_id` INT NOT NULL REFERENCES `category` (`id`) ON DELETE CASCADE\n) CHARACTER SET utf8mb4",
             "DROP TABLE IF EXISTS `config_category_map`",
         }
-        assert not set(Migrate.upgrade_operators).symmetric_difference(expected_upgrade_operators)
-
-        assert not set(Migrate.downgrade_operators).symmetric_difference(
-            expected_downgrade_operators
-        )
+        downgrade_operators = set(Migrate.downgrade_operators)
+        downgrade_more_than_expected = downgrade_operators - expected_downgrade_operators
+        assert not downgrade_more_than_expected
+        downgrade_less_than_expected = expected_downgrade_operators - downgrade_operators
+        assert not downgrade_less_than_expected
 
     elif isinstance(Migrate.ddl, PostgresDDL):
         expected_upgrade_operators = {
             'DROP INDEX IF EXISTS "uid_category_title_f7fc03"',
             'ALTER TABLE "category" ALTER COLUMN "name" DROP NOT NULL',
             'ALTER TABLE "category" ALTER COLUMN "slug" TYPE VARCHAR(100) USING "slug"::VARCHAR(100)',
-            'ALTER TABLE "category" ALTER COLUMN "created_at" TYPE TIMESTAMPTZ USING "created_at"::TIMESTAMPTZ',
             'ALTER TABLE "category" RENAME COLUMN "user_id" TO "owner_id"',
             'ALTER TABLE "category" ADD CONSTRAINT "fk_category_user_110d4c63" FOREIGN KEY ("owner_id") REFERENCES "user" ("id") ON DELETE CASCADE',
             'ALTER TABLE "config" DROP COLUMN "name"',
@@ -1049,7 +1055,6 @@ def test_migrate(mocker: MockerFixture):
             'ALTER TABLE "config" ADD "user_id" INT NOT NULL',
             'ALTER TABLE "config" ADD CONSTRAINT "fk_config_user_17daa970" FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON DELETE CASCADE',
             'ALTER TABLE "config" ALTER COLUMN "status" DROP DEFAULT',
-            'ALTER TABLE "config" ALTER COLUMN "value" TYPE JSONB USING "value"::JSONB',
             'ALTER TABLE "configs" RENAME TO "config"',
             'ALTER TABLE "email" ADD "address" VARCHAR(200) NOT NULL',
             'ALTER TABLE "email" RENAME COLUMN "id" TO "email_id"',
@@ -1060,14 +1065,10 @@ def test_migrate(mocker: MockerFixture):
             'ALTER TABLE "product" DROP COLUMN "uuid"',
             'ALTER TABLE "product" ALTER COLUMN "view_num" SET DEFAULT 0',
             'ALTER TABLE "product" RENAME COLUMN "image" TO "pic"',
-            'ALTER TABLE "product" ALTER COLUMN "body" TYPE TEXT USING "body"::TEXT',
-            'ALTER TABLE "product" ALTER COLUMN "created_at" TYPE TIMESTAMPTZ USING "created_at"::TIMESTAMPTZ',
             'ALTER TABLE "product" RENAME COLUMN "is_review" TO "is_reviewed"',
             'ALTER TABLE "product" RENAME COLUMN "is_delete" TO "is_deleted"',
             'ALTER TABLE "user" ALTER COLUMN "password" TYPE VARCHAR(100) USING "password"::VARCHAR(100)',
             'ALTER TABLE "user" DROP COLUMN "avatar"',
-            'ALTER TABLE "user" ALTER COLUMN "last_login" TYPE TIMESTAMPTZ USING "last_login"::TIMESTAMPTZ',
-            'ALTER TABLE "user" ALTER COLUMN "intro" TYPE TEXT USING "intro"::TEXT',
             'ALTER TABLE "user" ALTER COLUMN "longitude" TYPE DECIMAL(10,8) USING "longitude"::DECIMAL(10,8)',
             'CREATE INDEX "idx_product_name_869427" ON "product" ("name", "type_db_alias")',
             'CREATE INDEX "idx_email_email_4a1a33" ON "email" ("email")',
@@ -1079,11 +1080,16 @@ def test_migrate(mocker: MockerFixture):
             'CREATE TABLE "config_category_map" (\n    "category_id" INT NOT NULL REFERENCES "category" ("id") ON DELETE CASCADE,\n    "config_id" INT NOT NULL REFERENCES "config" ("id") ON DELETE CASCADE\n)',
             'DROP TABLE IF EXISTS "config_category"',
         }
+        upgrade_operators = set(Migrate.upgrade_operators)
+        upgrade_more_than_expected = upgrade_operators - expected_upgrade_operators
+        assert not upgrade_more_than_expected
+        upgrade_less_than_expected = expected_upgrade_operators - upgrade_operators
+        assert not upgrade_less_than_expected
+
         expected_downgrade_operators = {
             'CREATE UNIQUE INDEX "uid_category_title_f7fc03" ON "category" ("title")',
             'ALTER TABLE "category" ALTER COLUMN "name" SET NOT NULL',
             'ALTER TABLE "category" ALTER COLUMN "slug" TYPE VARCHAR(200) USING "slug"::VARCHAR(200)',
-            'ALTER TABLE "category" ALTER COLUMN "created_at" TYPE TIMESTAMPTZ USING "created_at"::TIMESTAMPTZ',
             'ALTER TABLE "category" RENAME COLUMN "owner_id" TO "user_id"',
             'ALTER TABLE "category" DROP CONSTRAINT IF EXISTS "fk_category_user_110d4c63"',
             'ALTER TABLE "config" ADD "name" VARCHAR(100) NOT NULL UNIQUE',
@@ -1091,7 +1097,6 @@ def test_migrate(mocker: MockerFixture):
             'ALTER TABLE "config" ALTER COLUMN "status" SET DEFAULT 1',
             'ALTER TABLE "config" DROP CONSTRAINT IF EXISTS "fk_config_user_17daa970"',
             'ALTER TABLE "config" RENAME TO "configs"',
-            'ALTER TABLE "config" ALTER COLUMN "value" TYPE JSONB USING "value"::JSONB',
             'ALTER TABLE "config" DROP COLUMN "user_id"',
             'ALTER TABLE "email" ADD "user_id" INT NOT NULL',
             'ALTER TABLE "email" DROP COLUMN "address"',
@@ -1106,11 +1111,7 @@ def test_migrate(mocker: MockerFixture):
             'ALTER TABLE "product" RENAME COLUMN "is_reviewed" TO "is_review"',
             'ALTER TABLE "user" ADD "avatar" VARCHAR(200) NOT NULL DEFAULT \'\'',
             'ALTER TABLE "user" ALTER COLUMN "password" TYPE VARCHAR(200) USING "password"::VARCHAR(200)',
-            'ALTER TABLE "user" ALTER COLUMN "last_login" TYPE TIMESTAMPTZ USING "last_login"::TIMESTAMPTZ',
-            'ALTER TABLE "user" ALTER COLUMN "intro" TYPE TEXT USING "intro"::TEXT',
             'ALTER TABLE "user" ALTER COLUMN "longitude" TYPE DECIMAL(12,9) USING "longitude"::DECIMAL(12,9)',
-            'ALTER TABLE "product" ALTER COLUMN "created_at" TYPE TIMESTAMPTZ USING "created_at"::TIMESTAMPTZ',
-            'ALTER TABLE "product" ALTER COLUMN "body" TYPE TEXT USING "body"::TEXT',
             'DROP TABLE IF EXISTS "product_user"',
             'DROP INDEX IF EXISTS "idx_product_name_869427"',
             'DROP INDEX IF EXISTS "idx_email_email_4a1a33"',
@@ -1121,10 +1122,11 @@ def test_migrate(mocker: MockerFixture):
             'CREATE TABLE "config_category" (\n    "config_id" INT NOT NULL REFERENCES "config" ("id") ON DELETE CASCADE,\n    "category_id" INT NOT NULL REFERENCES "category" ("id") ON DELETE CASCADE\n)',
             'DROP TABLE IF EXISTS "config_category_map"',
         }
-        assert not set(Migrate.upgrade_operators).symmetric_difference(expected_upgrade_operators)
-        assert not set(Migrate.downgrade_operators).symmetric_difference(
-            expected_downgrade_operators
-        )
+        downgrade_operators = set(Migrate.downgrade_operators)
+        downgrade_more_than_expected = downgrade_operators - expected_downgrade_operators
+        assert not downgrade_more_than_expected
+        downgrade_less_than_expected = expected_downgrade_operators - downgrade_operators
+        assert not downgrade_less_than_expected
 
     elif isinstance(Migrate.ddl, SqliteDDL):
         assert Migrate.upgrade_operators == []

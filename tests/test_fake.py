@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 import re
 import shlex
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -12,12 +11,7 @@ import pytest
 
 from aerich.ddl.sqlite import SqliteDDL
 from aerich.migrate import Migrate
-from tests._utils import chdir
-
-
-def copy_files(*src_files: Path, target_dir: Path) -> None:
-    for src in src_files:
-        shutil.copy(src, target_dir / src.name)
+from tests._utils import chdir, copy_files
 
 
 def run_shell(command: str, capture_output=True, **kw) -> str:
@@ -32,14 +26,17 @@ def run_shell(command: str, capture_output=True, **kw) -> str:
 @pytest.fixture
 def new_aerich_project(tmp_path: Path):
     test_dir = Path(__file__).parent
-    if not test_dir.joinpath("fake").exists():
-        test_dir = test_dir.parent
-    settings_py = test_dir / "fake" / "settings.py"
-    _tests_py = test_dir / "fake" / "_tests.py"
-    db_py = settings_py.parent / "db.py"
+    asset_dir = test_dir / "assets" / "fake"
+    settings_py = asset_dir / "settings.py"
+    _tests_py = asset_dir / "_tests.py"
+    db_py = asset_dir / "db.py"
     models_py = test_dir / "models.py"
     models_second_py = test_dir / "models_second.py"
     copy_files(settings_py, _tests_py, models_py, models_second_py, db_py, target_dir=tmp_path)
+    dst_dir = tmp_path / "tests"
+    dst_dir.mkdir()
+    dst_dir.joinpath("__init__.py").touch()
+    copy_files(test_dir / "_utils.py", test_dir / "indexes.py", target_dir=dst_dir)
     if should_remove := str(tmp_path) not in sys.path:
         sys.path.append(str(tmp_path))
     with chdir(tmp_path):

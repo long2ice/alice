@@ -143,6 +143,22 @@ class Migrate:
         return version
 
     @classmethod
+    def _exclude_extra_field_types(cls, diffs) -> list[tuple]:
+        # Exclude changes of db_field_types that is not about the current dialect, e.g.:
+        # {"db_field_types": {
+        #   "oracle": "VARCHAR(255) --> ""oracle": "NVARCHAR2(255)"
+        # }}
+        return [
+            c
+            for c in diffs
+            if not (
+                len(c) == 3
+                and c[1] == "db_field_types"
+                and not ({i[0] for i in c[2]} & {cls.dialect, ""})
+            )
+        ]
+
+    @classmethod
     async def migrate(cls, name: str, empty: bool) -> str:
         """
         diff old models and new models to generate diff content
@@ -459,7 +475,9 @@ class Migrate:
                             len(new_name.symmetric_difference(set(f.get("name", "")))),
                         ),
                     ):
-                        changes = list(diff(old_data_field, new_data_field))
+                        changes = cls._exclude_extra_field_types(
+                            diff(old_data_field, new_data_field)
+                        )
                         old_data_field_name = cast(str, old_data_field.get("name"))
                         if len(changes) == 2:
                             # rename field
@@ -566,7 +584,7 @@ class Migrate:
                 for field_name in set(new_data_fields_name).intersection(set(old_data_fields_name)):
                     old_data_field = cls.get_field_by_name(field_name, old_data_fields)
                     new_data_field = cls.get_field_by_name(field_name, new_data_fields)
-                    changes = diff(old_data_field, new_data_field)
+                    changes = cls._exclude_extra_field_types(diff(old_data_field, new_data_field))
                     modified = False
                     for change in changes:
                         _, option, old_new = change

@@ -52,6 +52,7 @@ class Category(Model):
     user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
         "models.User", description="User"
     )
+    title = fields.CharField(max_length=20, unique=True)
     created_at = fields.DatetimeField(auto_now_add=True)
 
 
