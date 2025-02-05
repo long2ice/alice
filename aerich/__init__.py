@@ -39,18 +39,19 @@ class Command:
     async def init(self) -> None:
         await Migrate.init(self.tortoise_config, self.app, self.location)
 
-    async def _upgrade(self, conn, version_file) -> None:
+    async def _upgrade(self, conn, version_file, fake=False) -> None:
         file_path = Path(Migrate.migrate_location, version_file)
         m = import_py_file(file_path)
         upgrade = m.upgrade
-        await conn.execute_script(await upgrade(conn))
+        if not fake:
+            await conn.execute_script(await upgrade(conn))
         await Aerich.create(
             version=version_file,
             app=self.app,
             content=get_models_describe(self.app),
         )
 
-    async def upgrade(self, run_in_transaction: bool = True) -> List[str]:
+    async def upgrade(self, run_in_transaction: bool = True, fake=False) -> List[str]:
         migrated = []
         for version_file in Migrate.get_all_version_files():
             try:
@@ -61,14 +62,14 @@ class Command:
                 app_conn_name = get_app_connection_name(self.tortoise_config, self.app)
                 if run_in_transaction:
                     async with in_transaction(app_conn_name) as conn:
-                        await self._upgrade(conn, version_file)
+                        await self._upgrade(conn, version_file, fake=fake)
                 else:
                     app_conn = get_app_connection(self.tortoise_config, self.app)
-                    await self._upgrade(app_conn, version_file)
+                    await self._upgrade(app_conn, version_file, fake=fake)
                 migrated.append(version_file)
         return migrated
 
-    async def downgrade(self, version: int, delete: bool) -> List[str]:
+    async def downgrade(self, version: int, delete: bool, fake=False) -> List[str]:
         ret: List[str] = []
         if version == -1:
             specified_version = await Migrate.get_last_version()
@@ -93,7 +94,8 @@ class Command:
                 downgrade_sql = await downgrade(conn)
                 if not downgrade_sql.strip():
                     raise DowngradeError("No downgrade items found")
-                await conn.execute_script(downgrade_sql)
+                if not fake:
+                    await conn.execute_script(downgrade_sql)
                 await version_obj.delete()
                 if delete:
                     os.unlink(file_path)

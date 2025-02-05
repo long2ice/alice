@@ -15,7 +15,7 @@ def test_create_table():
     `slug` VARCHAR(100) NOT NULL,
     `name` VARCHAR(200),
     `title` VARCHAR(20) NOT NULL,
-    `created_at` DATETIME(6) NOT NULL  DEFAULT CURRENT_TIMESTAMP(6),
+    `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     `owner_id` INT NOT NULL COMMENT 'User',
     CONSTRAINT `fk_category_user_110d4c63` FOREIGN KEY (`owner_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 ) CHARACTER SET utf8mb4"""
@@ -29,7 +29,7 @@ def test_create_table():
     "slug" VARCHAR(100) NOT NULL,
     "name" VARCHAR(200),
     "title" VARCHAR(20) NOT NULL,
-    "created_at" TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "owner_id" INT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE /* User */
 )"""
         )
@@ -42,7 +42,7 @@ def test_create_table():
     "slug" VARCHAR(100) NOT NULL,
     "name" VARCHAR(200),
     "title" VARCHAR(20) NOT NULL,
-    "created_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "owner_id" INT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE
 );
 COMMENT ON COLUMN "category"."owner_id" IS 'User'"""
@@ -85,7 +85,7 @@ def test_modify_column():
         assert ret0 == "ALTER TABLE `category` MODIFY COLUMN `name` VARCHAR(200)"
         assert (
             ret1
-            == "ALTER TABLE `user` MODIFY COLUMN `is_active` BOOL NOT NULL  COMMENT 'Is Active' DEFAULT 1"
+            == "ALTER TABLE `user` MODIFY COLUMN `is_active` BOOL NOT NULL COMMENT 'Is Active' DEFAULT 1"
         )
     elif isinstance(Migrate.ddl, PostgresDDL):
         assert (

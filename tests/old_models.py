@@ -40,6 +40,7 @@ class User(Model):
 
 class Email(Model):
     email = fields.CharField(max_length=200)
+    company = fields.CharField(max_length=100, db_index=True)
     is_primary = fields.BooleanField(default=False)
     user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
         "models.User", db_constraint=False
@@ -52,6 +53,7 @@ class Category(Model):
     user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
         "models.User", description="User"
     )
+    title = fields.CharField(max_length=20, unique=True)
     created_at = fields.DatetimeField(auto_now_add=True)
 
 
@@ -61,13 +63,14 @@ class Product(Model):
     name = fields.CharField(max_length=50)
     view_num = fields.IntField(description="View Num")
     sort = fields.IntField()
-    is_reviewed = fields.BooleanField(description="Is Reviewed")
+    is_review = fields.BooleanField(description="Is Reviewed")
     type = fields.IntEnumField(
         ProductType, description="Product Type", source_field="type_db_alias"
     )
     image = fields.CharField(max_length=200)
     body = fields.TextField()
     created_at = fields.DatetimeField(auto_now_add=True)
+    is_delete = fields.BooleanField(default=False)
 
 
 class Config(Model):

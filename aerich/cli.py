@@ -93,15 +93,26 @@ async def migrate(ctx: Context, name, empty) -> None:
     type=bool,
     help="Make migrations in a single transaction or not. Can be helpful for large migrations or creating concurrent indexes.",
 )
+@click.option(
+    "--fake",
+    default=False,
+    is_flag=True,
+    help="Mark migrations as run without actually running them.",
+)
 @click.pass_context
-async def upgrade(ctx: Context, in_transaction: bool) -> None:
+async def upgrade(ctx: Context, in_transaction: bool, fake: bool) -> None:
     command = ctx.obj["command"]
-    migrated = await command.upgrade(run_in_transaction=in_transaction)
+    migrated = await command.upgrade(run_in_transaction=in_transaction, fake=fake)
     if not migrated:
         click.secho("No upgrade items found", fg=Color.yellow)
     else:
         for version_file in migrated:
-            click.secho(f"Success upgrading to {version_file}", fg=Color.green)
+            if fake:
+                click.echo(
+                    f"Upgrading to {version_file}... " + click.style("FAKED", fg=Color.green)
+                )
+            else:
+                click.secho(f"Success upgrading to {version_file}", fg=Color.green)
 
 
 @cli.command(help="Downgrade to specified version.")
@@ -121,18 +132,27 @@ async def upgrade(ctx: Context, in_transaction: bool) -> None:
     show_default=True,
     help="Also delete the migration files.",
 )
+@click.option(
+    "--fake",
+    default=False,
+    is_flag=True,
+    help="Mark migrations as run without actually running them.",
+)
 @click.pass_context
 @click.confirmation_option(
     prompt="Downgrade is dangerous: you might lose your data! Are you sure?",
 )
-async def downgrade(ctx: Context, version: int, delete: bool) -> None:
+async def downgrade(ctx: Context, version: int, delete: bool, fake: bool) -> None:
     command = ctx.obj["command"]
     try:
-        files = await command.downgrade(version, delete)
+        files = await command.downgrade(version, delete, fake=fake)
     except DowngradeError as e:
         return click.secho(str(e), fg=Color.yellow)
     for file in files:
-        click.secho(f"Success downgrading to {file}", fg=Color.green)
+        if fake:
+            click.echo(f"Downgrading to {file}... " + click.style("FAKED", fg=Color.green))
+        else:
+            click.secho(f"Success downgrading to {file}", fg=Color.green)
 
 
 @cli.command(help="Show currently available heads (unapplied migrations).")
@@ -157,6 +177,19 @@ async def history(ctx: Context) -> None:
         click.secho(version, fg=Color.green)
 
 
+def _write_config(config_path, doc, table) -> None:
+    try:
+        import tomli_w as tomlkit
+    except ImportError:
+        import tomlkit  # type: ignore
+
+    try:
+        doc["tool"]["aerich"] = table
+    except KeyError:
+        doc["tool"] = {"aerich": table}
+    config_path.write_text(tomlkit.dumps(doc))
+
+
 @cli.command(help="Initialize aerich config and create migrations folder.")
 @click.option(
     "-t",
@@ -179,10 +212,6 @@ async def history(ctx: Context) -> None:
 )
 @click.pass_context
 async def init(ctx: Context, tortoise_orm, location, src_folder) -> None:
-    try:
-        import tomli_w as tomlkit
-    except ImportError:
-        import tomlkit  # type: ignore
     config_file = ctx.obj["config_file"]
 
     if os.path.isabs(src_folder):
@@ -197,20 +226,18 @@ async def init(ctx: Context, tortoise_orm, location, src_folder) -> None:
     config_path = Path(config_file)
     content = config_path.read_text("utf-8") if config_path.exists() else "[tool.aerich]"
     doc: dict = tomllib.loads(content)
-    table: dict = getattr(tomlkit, "table", dict)()
-    table["tortoise_orm"] = tortoise_orm
-    table["location"] = location
-    table["src_folder"] = src_folder
-    try:
-        doc["tool"]["aerich"] = table
-    except KeyError:
-        doc["tool"] = {"aerich": table}
-    config_path.write_text(tomlkit.dumps(doc))
+
+    table = {"tortoise_orm": tortoise_orm, "location": location, "src_folder": src_folder}
+    if (aerich_config := doc.get("tool", {}).get("aerich")) and all(
+        aerich_config.get(k) == v for k, v in table.items()
+    ):
+        click.echo(f"Aerich config {config_file} already inited.")
+    else:
+        _write_config(config_path, doc, table)
+        click.secho(f"Success writing aerich config to {config_file}", fg=Color.green)
 
     Path(location).mkdir(parents=True, exist_ok=True)
-
     click.secho(f"Success creating migrations folder {location}", fg=Color.green)
-    click.secho(f"Success writing aerich config to {config_file}", fg=Color.green)
 
 
 @cli.command(help="Generate schema and generate app migration folder.")

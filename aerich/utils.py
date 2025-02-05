@@ -6,7 +6,7 @@ import re
 import sys
 from pathlib import Path
 from types import ModuleType
-from typing import Dict, Generator, Optional, Union
+from typing import Generator, Optional, Union
 
 from asyncclick import BadOptionUsage, ClickException, Context
 from dictdiffer import diff
@@ -29,7 +29,7 @@ def add_src_path(path: str) -> str:
     return path
 
 
-def get_app_connection_name(config, app_name: str) -> str:
+def get_app_connection_name(config: dict, app_name: str) -> str:
     """
     get connection name
     :param config:
@@ -46,10 +46,10 @@ def get_app_connection_name(config, app_name: str) -> str:
 
 def get_app_connection(config, app) -> BaseDBAsyncClient:
     """
-    get connection name
+    get connection client
     :param config:
     :param app:
-    :return:
+    :return: client instance
     """
     return Tortoise.get_connection(get_app_connection_name(config, app))
 
@@ -80,7 +80,7 @@ def get_tortoise_config(ctx: Context, tortoise_orm: str) -> dict:
     return config
 
 
-def get_models_describe(app: str) -> Dict:
+def get_models_describe(app: str) -> dict:
     """
     get app models describe
     :param app:

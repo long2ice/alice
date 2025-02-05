@@ -16,12 +16,13 @@ class InspectPostgres(Inspect):
     @property
     def field_map(self) -> FieldMapDict:
         return {
+            "int2": self.smallint_field,
             "int4": self.int_field,
-            "int8": self.int_field,
+            "int8": self.bigint_field,
             "smallint": self.smallint_field,
+            "bigint": self.bigint_field,
             "varchar": self.char_field,
             "text": self.text_field,
-            "bigint": self.bigint_field,
             "timestamptz": self.datetime_field,
             "float4": self.float_field,
             "float8": self.float_field,

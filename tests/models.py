@@ -44,6 +44,7 @@ class User(Model):
 class Email(Model):
     email_id = fields.IntField(primary_key=True)
     email = fields.CharField(max_length=200, db_index=True)
+    company = fields.CharField(max_length=100, db_index=True, unique=True)
     is_primary = fields.BooleanField(default=False)
     address = fields.CharField(max_length=200)
     users: fields.ManyToManyRelation[User] = fields.ManyToManyField("models.User")
@@ -81,6 +82,7 @@ class Product(Model):
     pic = fields.CharField(max_length=200)
     body = fields.TextField()
     created_at = fields.DatetimeField(auto_now_add=True)
+    is_deleted = fields.BooleanField(default=False)
 
     class Meta:
         unique_together = (("name", "type"),)
