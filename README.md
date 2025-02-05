@@ -264,6 +264,7 @@ class MyModel(Model):
     class Meta:
         managed = False
 ```
+**Note** `managed=False` does not recognized by `tortoise-orm` and `aerich init-db`, it is only for `aerich migrate`.
 
 ## Restore `aerich` workflow
 

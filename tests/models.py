@@ -108,10 +108,6 @@ class Config(Model):
         managed = True
 
 
-class NewModel(Model):
-    name = fields.CharField(max_length=50)
-
-
 class DontManageMe(Model):
     name = fields.CharField(max_length=50)
 
@@ -122,3 +118,7 @@ class DontManageMe(Model):
 class Ignore(Model):
     class Meta:
         managed = False
+
+
+class NewModel(Model):
+    name = fields.CharField(max_length=50)
