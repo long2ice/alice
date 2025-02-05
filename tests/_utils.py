@@ -43,5 +43,4 @@ async def init_db(tortoise_orm, generate_schemas=True) -> None:
 
 def copy_files(*src_files: Path, target_dir: Path) -> None:
     for src in src_files:
-        dst = target_dir / src.name if target_dir.is_dir() else target_dir
-        shutil.copy(src, dst)
+        shutil.copy(src, target_dir)
