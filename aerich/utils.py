@@ -29,7 +29,7 @@ def add_src_path(path: str) -> str:
     return path
 
 
-def get_app_connection_name(config: dict, app_name: str) -> str:
+def get_app_connection_name(config, app_name: str) -> str:
     """
     get connection name
     :param config:

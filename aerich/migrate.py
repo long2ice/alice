@@ -260,7 +260,7 @@ class Migrate:
     ) -> None:
         old_m2m_fields = cast("list[dict]", old_model_describe.get("m2m_fields", []))
         new_m2m_fields = cast("list[dict]", new_model_describe.get("m2m_fields", []))
-        new_tables: Dict[str, dict] = {
+        new_tables: dict[str, dict] = {
             field["table"]: field for field in new_models.values() if not field.get("skip")
         }
         for action, option, change in get_dict_diff_by_key(old_m2m_fields, new_m2m_fields):
