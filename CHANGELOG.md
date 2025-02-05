@@ -4,9 +4,15 @@
 
 ### [0.8.2]**(Unreleased)**
 
+#### Added
+- Support ignore table by settings `managed=False` in `Meta` class. ([#397])
+- feat: add --fake to upgrade/downgrade. ([#398])
+
 #### Fixed
 - fix: inspectdb raise KeyError 'int2' for smallint. ([#401])
 
+[#397]: https://github.com/tortoise/aerich/pull/397
+[#398]: https://github.com/tortoise/aerich/pull/398
 [#401]: https://github.com/tortoise/aerich/pull/401
 
 ### [0.8.1](../../releases/tag/v0.8.1) - 2024-12-27
