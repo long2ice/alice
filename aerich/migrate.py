@@ -593,7 +593,12 @@ class Migrate:
 
     @classmethod
     def _handle_field_changes(
-        cls, model: type[Model], field_name: str, old_data_fields: list[dict], new_data_fields: list[dict], upgrade: bool
+        cls,
+        model: type[Model],
+        field_name: str,
+        old_data_fields: list[dict],
+        new_data_fields: list[dict],
+        upgrade: bool,
     ) -> None:
         old_data_field = cls.get_field_by_name(field_name, old_data_fields)
         new_data_field = cls.get_field_by_name(field_name, new_data_fields)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from enum import Enum
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import tortoise
 from tortoise.backends.base.schema_generator import BaseSchemaGenerator
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 class BaseDDL:
-    schema_generator_cls: Type[BaseSchemaGenerator] = BaseSchemaGenerator
+    schema_generator_cls: type[BaseSchemaGenerator] = BaseSchemaGenerator
     DIALECT = "sql"
     _DROP_TABLE_TEMPLATE = 'DROP TABLE IF EXISTS "{table_name}"'
     _ADD_COLUMN_TEMPLATE = 'ALTER TABLE "{table_name}" ADD {column}'
@@ -28,9 +28,7 @@ class BaseDDL:
         'ALTER TABLE "{table_name}" ADD {unique}INDEX "{index_name}" ({column_names})'
     )
     _DROP_INDEX_TEMPLATE = 'ALTER TABLE "{table_name}" DROP INDEX "{index_name}"'
-    _ADD_UNIQUE_TEMPLATE = (
-        'ALTER TABLE "{table_name}" ADD UNIQUE ("{column_name}")'
-    )
+    _ADD_UNIQUE_TEMPLATE = 'ALTER TABLE "{table_name}" ADD UNIQUE ("{column_name}")'
     _DROP_UNIQUE_TEMPLATE = 'ALTER TABLE "{table_name}" DROP INDEX IF EXISTS "{column_name}_2"'
     _ADD_FK_TEMPLATE = 'ALTER TABLE "{table_name}" ADD CONSTRAINT "{fk_name}" FOREIGN KEY ("{db_column}") REFERENCES "{table}" ("{field}") ON DELETE {on_delete}'
     _DROP_FK_TEMPLATE = 'ALTER TABLE "{table_name}" DROP FOREIGN KEY "{fk_name}"'
