@@ -1,6 +1,8 @@
 import contextlib
 import os
+import shutil
 import sys
+from pathlib import Path
 
 from tortoise import Tortoise, generate_schema_for_client
 from tortoise.exceptions import DBConnectionError, OperationalError
@@ -37,3 +39,8 @@ async def init_db(tortoise_orm, generate_schemas=True) -> None:
     await Tortoise.init(config=tortoise_orm, _create_db=True)
     if generate_schemas:
         await generate_schema_for_client(Tortoise.get_connection("default"), safe=True)
+
+
+def copy_files(*src_files: Path, target_dir: Path) -> None:
+    for src in src_files:
+        shutil.copy(src, target_dir)
