@@ -593,7 +593,7 @@ class Migrate:
 
     @classmethod
     def _handle_field_changes(
-        cls, model, field_name, old_data_fields, new_data_fields, upgrade
+        cls, model: type[Model], field_name: str, old_data_fields: list[dict], new_data_fields: list[dict], upgrade: bool
     ) -> None:
         old_data_field = cls.get_field_by_name(field_name, old_data_fields)
         new_data_field = cls.get_field_by_name(field_name, new_data_fields)
@@ -622,8 +622,13 @@ class Migrate:
                 if "indexed" in options:
                     # indexed include it
                     continue
-                # Change unique for indexed field: `db_index=True, unique=False` --> `db_index=True, unique=True`
-                pass
+                # Change unique for indexed field, e.g.: `db_index=True, unique=False` --> `db_index=True, unique=True`
+                change_unique_constraint = (
+                    cls.ddl.add_unique_constraint
+                    if old_new[0] is False and old_new[1] is True
+                    else cls.ddl.drop_unique_constraint
+                )
+                cls._add_operator(change_unique_constraint(model, field_name), upgrade, True)
             elif option == "nullable":
                 # change nullable
                 cls._add_operator(cls._alter_null(model, new_data_field), upgrade)
