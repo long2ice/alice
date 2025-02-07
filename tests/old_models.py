@@ -40,6 +40,7 @@ class User(Model):
 
 class Email(Model):
     email = fields.CharField(max_length=200)
+    company = fields.CharField(max_length=100, db_index=True)
     is_primary = fields.BooleanField(default=False)
     user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
         "models.User", db_constraint=False
