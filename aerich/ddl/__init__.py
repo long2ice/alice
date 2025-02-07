@@ -127,11 +127,7 @@ class BaseDDL:
             template = self._MODIFY_COLUMN_TEMPLATE
         else:
             # sqlite does not support alter table to add unique column
-            unique = (
-                " UNIQUE"
-                if field_describe.get("unique") and self.DIALECT != "sqlite"
-                else ""
-            )
+            unique = " UNIQUE" if field_describe.get("unique") and self.DIALECT != "sqlite" else ""
             template = self._ADD_COLUMN_TEMPLATE
         column = self.schema_generator._create_string(
             db_column=db_column,
