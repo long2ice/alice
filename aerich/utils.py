@@ -6,7 +6,7 @@ import re
 import sys
 from pathlib import Path
 from types import ModuleType
-from typing import Dict, Generator, Optional, Union
+from typing import Generator, Optional, Union
 
 from asyncclick import BadOptionUsage, ClickException, Context
 from dictdiffer import diff
@@ -37,20 +37,20 @@ def get_app_connection_name(config, app_name: str) -> str:
     :return:
     """
     app = config.get("apps").get(app_name)
-    if app:
-        return app.get("default_connection", "default")
-    raise BadOptionUsage(
-        option_name="--app",
-        message=f'Can\'t get app named "{app_name}"',
-    )
+    if not app:
+        raise BadOptionUsage(
+            option_name="--app",
+            message=f'Can\'t get app named "{app_name}"',
+        )
+    return app.get("default_connection", "default")
 
 
 def get_app_connection(config, app) -> BaseDBAsyncClient:
     """
-    get connection name
+    get connection client
     :param config:
     :param app:
-    :return:
+    :return: client instance
     """
     return Tortoise.get_connection(get_app_connection_name(config, app))
 
@@ -81,7 +81,7 @@ def get_tortoise_config(ctx: Context, tortoise_orm: str) -> dict:
     return config
 
 
-def get_models_describe(app: str) -> Dict:
+def get_models_describe(app: str) -> dict:
     """
     get app models describe
     :param app:

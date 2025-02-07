@@ -278,6 +278,23 @@ await command.init()
 await command.migrate('test')
 ```
 
+## Upgrade/Downgrade with `--fake` option
+
+Marks the migrations up to the latest one(or back to the target one) as applied, but without actually running the SQL to change your database schema.
+
+- Upgrade
+
+```bash
+aerich upgrade --fake
+aerich --app models upgrade --fake
+```
+- Downgrade
+
+```bash
+aerich downgrade --fake -v 2
+aerich --app models downgrade --fake -v 2
+```
+
 ## License
 
 This project is licensed under the

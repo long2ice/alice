@@ -4,12 +4,16 @@
 
 ### [0.8.2]**(Unreleased)**
 
+#### Added
+- feat: add --fake to upgrade/downgrade. ([#398])
+
 #### Fixed
 - fix: inspectdb raise KeyError 'int2' for smallint. ([#401])
 
 ### Changed
-- Refactored version management to use `importlib.metadata.version(__package__)` instead of hardcoded version string (#412)
+- Refactored version management to use `importlib.metadata.version(__package__)` instead of hardcoded version string ([#412])
 
+[#398]: https://github.com/tortoise/aerich/pull/398
 [#401]: https://github.com/tortoise/aerich/pull/401
 [#412]: https://github.com/tortoise/aerich/pull/412
 

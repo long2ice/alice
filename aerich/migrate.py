@@ -4,7 +4,7 @@ import importlib
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Set, Tuple, Type, Union, cast
+from typing import Iterable, Optional, Union, cast
 
 import asyncclick as click
 import tortoise
@@ -37,17 +37,17 @@ async def downgrade(db: BaseDBAsyncClient) -> str:
 
 
 class Migrate:
-    upgrade_operators: List[str] = []
-    downgrade_operators: List[str] = []
-    _upgrade_fk_m2m_index_operators: List[str] = []
-    _downgrade_fk_m2m_index_operators: List[str] = []
-    _upgrade_m2m: List[str] = []
-    _downgrade_m2m: List[str] = []
+    upgrade_operators: list[str] = []
+    downgrade_operators: list[str] = []
+    _upgrade_fk_m2m_index_operators: list[str] = []
+    _downgrade_fk_m2m_index_operators: list[str] = []
+    _upgrade_m2m: list[str] = []
+    _downgrade_m2m: list[str] = []
     _aerich = Aerich.__name__
-    _rename_fields: Dict[str, Dict[str, str]] = {}  # {'model': {'old_field': 'new_field'}}
+    _rename_fields: dict[str, dict[str, str]] = {}  # {'model': {'old_field': 'new_field'}}
 
     ddl: BaseDDL
-    ddl_class: Type[BaseDDL]
+    ddl_class: type[BaseDDL]
     _last_version_content: Optional[dict] = None
     app: str
     migrate_location: Path
@@ -55,11 +55,11 @@ class Migrate:
     _db_version: Optional[str] = None
 
     @staticmethod
-    def get_field_by_name(name: str, fields: List[dict]) -> dict:
+    def get_field_by_name(name: str, fields: list[dict]) -> dict:
         return next(filter(lambda x: x.get("name") == name, fields))
 
     @classmethod
-    def get_all_version_files(cls) -> List[str]:
+    def get_all_version_files(cls) -> list[str]:
         def get_file_version(file_name: str) -> str:
             return file_name.split("_")[0]
 
@@ -74,7 +74,7 @@ class Migrate:
         return sorted(files, key=lambda x: int(get_file_version(x)))
 
     @classmethod
-    def _get_model(cls, model: str) -> Type[Model]:
+    def _get_model(cls, model: str) -> type[Model]:
         return Tortoise.apps[cls.app].get(model)  # type: ignore
 
     @classmethod
@@ -92,7 +92,7 @@ class Migrate:
             cls._db_version = ret[1][0].get("version")
 
     @classmethod
-    async def load_ddl_class(cls) -> Type[BaseDDL]:
+    async def load_ddl_class(cls) -> type[BaseDDL]:
         ddl_dialect_module = importlib.import_module(f"aerich.ddl.{cls.dialect}")
         return getattr(ddl_dialect_module, f"{cls.dialect.capitalize()}DDL")
 
@@ -143,6 +143,22 @@ class Migrate:
         return version
 
     @classmethod
+    def _exclude_extra_field_types(cls, diffs) -> list[tuple]:
+        # Exclude changes of db_field_types that is not about the current dialect, e.g.:
+        # {"db_field_types": {
+        #   "oracle": "VARCHAR(255)" --> "oracle": "NVARCHAR2(255)"
+        # }}
+        return [
+            c
+            for c in diffs
+            if not (
+                len(c) == 3
+                and c[1] == "db_field_types"
+                and not ({i[0] for i in c[2]} & {cls.dialect, ""})
+            )
+        ]
+
+    @classmethod
     async def migrate(cls, name: str, empty: bool) -> str:
         """
         diff old models and new models to generate diff content
@@ -170,7 +186,7 @@ class Migrate:
         builds content for diff file from template
         """
 
-        def join_lines(lines: List[str]) -> str:
+        def join_lines(lines: list[str]) -> str:
             if not lines:
                 return ""
             return ";\n        ".join(lines) + ";"
@@ -202,7 +218,7 @@ class Migrate:
                 cls.downgrade_operators.append(operator)
 
     @classmethod
-    def _handle_indexes(cls, model: Type[Model], indexes: List[Union[Tuple[str], Index]]) -> list:
+    def _handle_indexes(cls, model: type[Model], indexes: list[Union[tuple[str], Index]]) -> list:
         if tortoise.__version__ > "0.22.2":
             # The min version of tortoise is '0.11.0', so we can compare it by a `>`,
             # tortoise>0.22.2 have __eq__/__hash__ with Index class since 313ee76.
@@ -224,13 +240,13 @@ class Migrate:
         return indexes
 
     @classmethod
-    def _get_indexes(cls, model, model_describe: dict) -> Set[Union[Index, Tuple[str, ...]]]:
-        indexes: Set[Union[Index, Tuple[str, ...]]] = set()
+    def _get_indexes(cls, model, model_describe: dict) -> set[Union[Index, tuple[str, ...]]]:
+        indexes: set[Union[Index, tuple[str, ...]]] = set()
         for x in cls._handle_indexes(model, model_describe.get("indexes", [])):
             if isinstance(x, Index):
                 indexes.add(x)
             else:
-                indexes.add(cast(Tuple[str, ...], tuple(x)))
+                indexes.add(cast("tuple[str, ...]", tuple(x)))
         return indexes
 
     @staticmethod
@@ -240,11 +256,11 @@ class Migrate:
 
     @classmethod
     def _handle_m2m_fields(
-        cls, old_model_describe: Dict, new_model_describe: Dict, model, new_models, upgrade=True
+        cls, old_model_describe: dict, new_model_describe: dict, model, new_models, upgrade=True
     ) -> None:
-        old_m2m_fields = cast(List[dict], old_model_describe.get("m2m_fields", []))
-        new_m2m_fields = cast(List[dict], new_model_describe.get("m2m_fields", []))
-        new_tables: Dict[str, dict] = {field["table"]: field for field in new_models.values()}
+        old_m2m_fields = cast("list[dict]", old_model_describe.get("m2m_fields", []))
+        new_m2m_fields = cast("list[dict]", new_model_describe.get("m2m_fields", []))
+        new_tables: dict[str, dict] = {field["table"]: field for field in new_models.values()}
         for action, option, change in get_dict_diff_by_key(old_m2m_fields, new_m2m_fields):
             if (option and option[-1] == "nullable") or change[0][0] == "db_constraint":
                 continue
@@ -290,18 +306,18 @@ class Migrate:
     def _handle_relational(
         cls,
         key: str,
-        old_model_describe: Dict,
-        new_model_describe: Dict,
-        model: Type[Model],
-        old_models: Dict,
-        new_models: Dict,
+        old_model_describe: dict,
+        new_model_describe: dict,
+        model: type[Model],
+        old_models: dict,
+        new_models: dict,
         upgrade=True,
     ) -> None:
-        old_fk_fields = cast(List[dict], old_model_describe.get(key))
-        new_fk_fields = cast(List[dict], new_model_describe.get(key))
+        old_fk_fields = cast("list[dict]", old_model_describe.get(key))
+        new_fk_fields = cast("list[dict]", new_model_describe.get(key))
 
-        old_fk_fields_name: List[str] = [i.get("name", "") for i in old_fk_fields]
-        new_fk_fields_name: List[str] = [i.get("name", "") for i in new_fk_fields]
+        old_fk_fields_name: list[str] = [i.get("name", "") for i in old_fk_fields]
+        new_fk_fields_name: list[str] = [i.get("name", "") for i in new_fk_fields]
 
         # add
         for new_fk_field_name in set(new_fk_fields_name).difference(set(old_fk_fields_name)):
@@ -312,7 +328,9 @@ class Migrate:
                 cls._add_operator(sql, upgrade, fk_m2m_index=True)
         # drop
         for old_fk_field_name in set(old_fk_fields_name).difference(set(new_fk_fields_name)):
-            old_fk_field = cls.get_field_by_name(old_fk_field_name, cast(List[dict], old_fk_fields))
+            old_fk_field = cls.get_field_by_name(
+                old_fk_field_name, cast("list[dict]", old_fk_fields)
+            )
             if old_fk_field.get("db_constraint"):
                 ref_describe = cast(dict, old_models[old_fk_field["python_type"]])
                 sql = cls._drop_fk(model, old_fk_field, ref_describe)
@@ -321,11 +339,11 @@ class Migrate:
     @classmethod
     def _handle_fk_fields(
         cls,
-        old_model_describe: Dict,
-        new_model_describe: Dict,
-        model: Type[Model],
-        old_models: Dict,
-        new_models: Dict,
+        old_model_describe: dict,
+        new_model_describe: dict,
+        model: type[Model],
+        old_models: dict,
+        new_models: dict,
         upgrade=True,
     ) -> None:
         key = "fk_fields"
@@ -336,11 +354,11 @@ class Migrate:
     @classmethod
     def _handle_o2o_fields(
         cls,
-        old_model_describe: Dict,
-        new_model_describe: Dict,
-        model: Type[Model],
-        old_models: Dict,
-        new_models: Dict,
+        old_model_describe: dict,
+        new_model_describe: dict,
+        model: type[Model],
+        old_models: dict,
+        new_models: dict,
         upgrade=True,
     ) -> None:
         key = "o2o_fields"
@@ -350,7 +368,7 @@ class Migrate:
 
     @classmethod
     def diff_models(
-        cls, old_models: Dict[str, dict], new_models: Dict[str, dict], upgrade=True
+        cls, old_models: dict[str, dict], new_models: dict[str, dict], upgrade=True
     ) -> None:
         """
         diff models and add operators
@@ -362,7 +380,7 @@ class Migrate:
         _aerich = f"{cls.app}.{cls._aerich}"
         old_models.pop(_aerich, None)
         new_models.pop(_aerich, None)
-        models_with_rename_field: Set[str] = set()  # models that trigger the click.prompt
+        models_with_rename_field: set[str] = set()  # models that trigger the click.prompt
 
         for new_model_str, new_model_describe in new_models.items():
             model = cls._get_model(new_model_describe["name"].split(".")[1])
@@ -383,13 +401,13 @@ class Migrate:
                 old_unique_together = set(
                     map(
                         lambda x: tuple(x),
-                        cast(List[Iterable[str]], old_model_describe.get("unique_together")),
+                        cast("list[Iterable[str]]", old_model_describe.get("unique_together")),
                     )
                 )
                 new_unique_together = set(
                     map(
                         lambda x: tuple(x),
-                        cast(List[Iterable[str]], new_model_describe.get("unique_together")),
+                        cast("list[Iterable[str]]", new_model_describe.get("unique_together")),
                     )
                 )
                 old_indexes = cls._get_indexes(model, old_model_describe)
@@ -428,18 +446,18 @@ class Migrate:
                 old_data_fields = list(
                     filter(
                         lambda x: x.get("db_field_types") is not None,
-                        cast(List[dict], old_model_describe.get("data_fields")),
+                        cast("list[dict]", old_model_describe.get("data_fields")),
                     )
                 )
                 new_data_fields = list(
                     filter(
                         lambda x: x.get("db_field_types") is not None,
-                        cast(List[dict], new_model_describe.get("data_fields")),
+                        cast("list[dict]", new_model_describe.get("data_fields")),
                     )
                 )
 
-                old_data_fields_name = cast(List[str], [i.get("name") for i in old_data_fields])
-                new_data_fields_name = cast(List[str], [i.get("name") for i in new_data_fields])
+                old_data_fields_name = cast("list[str]", [i.get("name") for i in old_data_fields])
+                new_data_fields_name = cast("list[str]", [i.get("name") for i in new_data_fields])
 
                 # add fields or rename fields
                 for new_data_field_name in set(new_data_fields_name).difference(
@@ -459,7 +477,9 @@ class Migrate:
                             len(new_name.symmetric_difference(set(f.get("name", "")))),
                         ),
                     ):
-                        changes = list(diff(old_data_field, new_data_field))
+                        changes = cls._exclude_extra_field_types(
+                            diff(old_data_field, new_data_field)
+                        )
                         old_data_field_name = cast(str, old_data_field.get("name"))
                         if len(changes) == 2:
                             # rename field
@@ -566,7 +586,7 @@ class Migrate:
                 for field_name in set(new_data_fields_name).intersection(set(old_data_fields_name)):
                     old_data_field = cls.get_field_by_name(field_name, old_data_fields)
                     new_data_field = cls.get_field_by_name(field_name, new_data_fields)
-                    changes = diff(old_data_field, new_data_field)
+                    changes = cls._exclude_extra_field_types(diff(old_data_field, new_data_field))
                     modified = False
                     for change in changes:
                         _, option, old_new = change
@@ -622,11 +642,11 @@ class Migrate:
             cls._add_operator(cls.drop_model(old_models[old_model]["table"]), upgrade)
 
     @classmethod
-    def rename_table(cls, model: Type[Model], old_table_name: str, new_table_name: str) -> str:
+    def rename_table(cls, model: type[Model], old_table_name: str, new_table_name: str) -> str:
         return cls.ddl.rename_table(model, old_table_name, new_table_name)
 
     @classmethod
-    def add_model(cls, model: Type[Model]) -> str:
+    def add_model(cls, model: type[Model]) -> str:
         return cls.ddl.create_table(model)
 
     @classmethod
@@ -635,7 +655,7 @@ class Migrate:
 
     @classmethod
     def create_m2m(
-        cls, model: Type[Model], field_describe: dict, reference_table_describe: dict
+        cls, model: type[Model], field_describe: dict, reference_table_describe: dict
     ) -> str:
         return cls.ddl.create_m2m(model, field_describe, reference_table_describe)
 
@@ -644,7 +664,7 @@ class Migrate:
         return cls.ddl.drop_m2m(table_name)
 
     @classmethod
-    def _resolve_fk_fields_name(cls, model: Type[Model], fields_name: Iterable[str]) -> List[str]:
+    def _resolve_fk_fields_name(cls, model: type[Model], fields_name: Iterable[str]) -> list[str]:
         ret = []
         for field_name in fields_name:
             try:
@@ -662,7 +682,7 @@ class Migrate:
 
     @classmethod
     def _drop_index(
-        cls, model: Type[Model], fields_name: Union[Iterable[str], Index], unique=False
+        cls, model: type[Model], fields_name: Union[Iterable[str], Index], unique=False
     ) -> str:
         if isinstance(fields_name, Index):
             return cls.ddl.drop_index_by_name(
@@ -673,7 +693,7 @@ class Migrate:
 
     @classmethod
     def _add_index(
-        cls, model: Type[Model], fields_name: Union[Iterable[str], Index], unique=False
+        cls, model: type[Model], fields_name: Union[Iterable[str], Index], unique=False
     ) -> str:
         if isinstance(fields_name, Index):
             return fields_name.get_sql(cls.ddl.schema_generator, model, False)
@@ -681,42 +701,42 @@ class Migrate:
         return cls.ddl.add_index(model, field_names, unique)
 
     @classmethod
-    def _add_field(cls, model: Type[Model], field_describe: dict, is_pk: bool = False) -> str:
+    def _add_field(cls, model: type[Model], field_describe: dict, is_pk: bool = False) -> str:
         return cls.ddl.add_column(model, field_describe, is_pk)
 
     @classmethod
-    def _alter_default(cls, model: Type[Model], field_describe: dict) -> str:
+    def _alter_default(cls, model: type[Model], field_describe: dict) -> str:
         return cls.ddl.alter_column_default(model, field_describe)
 
     @classmethod
-    def _alter_null(cls, model: Type[Model], field_describe: dict) -> str:
+    def _alter_null(cls, model: type[Model], field_describe: dict) -> str:
         return cls.ddl.alter_column_null(model, field_describe)
 
     @classmethod
-    def _set_comment(cls, model: Type[Model], field_describe: dict) -> str:
+    def _set_comment(cls, model: type[Model], field_describe: dict) -> str:
         return cls.ddl.set_comment(model, field_describe)
 
     @classmethod
-    def _modify_field(cls, model: Type[Model], field_describe: dict) -> str:
+    def _modify_field(cls, model: type[Model], field_describe: dict) -> str:
         return cls.ddl.modify_column(model, field_describe)
 
     @classmethod
     def _drop_fk(
-        cls, model: Type[Model], field_describe: dict, reference_table_describe: dict
+        cls, model: type[Model], field_describe: dict, reference_table_describe: dict
     ) -> str:
         return cls.ddl.drop_fk(model, field_describe, reference_table_describe)
 
     @classmethod
-    def _remove_field(cls, model: Type[Model], column_name: str) -> str:
+    def _remove_field(cls, model: type[Model], column_name: str) -> str:
         return cls.ddl.drop_column(model, column_name)
 
     @classmethod
-    def _rename_field(cls, model: Type[Model], old_field_name: str, new_field_name: str) -> str:
+    def _rename_field(cls, model: type[Model], old_field_name: str, new_field_name: str) -> str:
         return cls.ddl.rename_column(model, old_field_name, new_field_name)
 
     @classmethod
     def _change_field(
-        cls, model: Type[Model], old_field_describe: dict, new_field_describe: dict
+        cls, model: type[Model], old_field_describe: dict, new_field_describe: dict
     ) -> str:
         db_field_types = cast(dict, new_field_describe.get("db_field_types"))
         return cls.ddl.change_column(
@@ -728,7 +748,7 @@ class Migrate:
 
     @classmethod
     def _add_fk(
-        cls, model: Type[Model], field_describe: dict, reference_table_describe: dict
+        cls, model: type[Model], field_describe: dict, reference_table_describe: dict
     ) -> str:
         """
         add fk
