@@ -44,6 +44,7 @@ class User(Model):
 class Email(Model):
     email_id = fields.IntField(primary_key=True)
     email = fields.CharField(max_length=200, db_index=True)
+    company = fields.CharField(max_length=100, db_index=True, unique=True)
     is_primary = fields.BooleanField(default=False)
     address = fields.CharField(max_length=200)
     users: fields.ManyToManyRelation[User] = fields.ManyToManyField("models.User")
