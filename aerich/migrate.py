@@ -13,6 +13,7 @@ from tortoise import BaseDBAsyncClient, Model, Tortoise
 from tortoise.exceptions import OperationalError
 from tortoise.indexes import Index
 
+from aerich.coder import load_index
 from aerich.ddl import BaseDDL
 from aerich.models import MAX_VERSION_LENGTH, Aerich
 from aerich.utils import (
@@ -245,6 +246,8 @@ class Migrate:
         for x in cls._handle_indexes(model, model_describe.get("indexes", [])):
             if isinstance(x, Index):
                 indexes.add(x)
+            elif isinstance(x, dict):
+                indexes.add(load_index(x))
             else:
                 indexes.add(cast("tuple[str, ...]", tuple(x)))
         return indexes
