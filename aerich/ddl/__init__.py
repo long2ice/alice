@@ -1,16 +1,20 @@
+from __future__ import annotations
+
 import re
 from enum import Enum
-from typing import Any, List, Type, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import tortoise
-from tortoise import BaseDBAsyncClient, Model
 from tortoise.backends.base.schema_generator import BaseSchemaGenerator
 
 from aerich.utils import is_default_function
 
+if TYPE_CHECKING:
+    from tortoise import BaseDBAsyncClient, Model
+
 
 class BaseDDL:
-    schema_generator_cls: Type[BaseSchemaGenerator] = BaseSchemaGenerator
+    schema_generator_cls: type[BaseSchemaGenerator] = BaseSchemaGenerator
     DIALECT = "sql"
     _DROP_TABLE_TEMPLATE = 'DROP TABLE IF EXISTS "{table_name}"'
     _ADD_COLUMN_TEMPLATE = 'ALTER TABLE "{table_name}" ADD {column}'
@@ -23,6 +27,8 @@ class BaseDDL:
         'ALTER TABLE "{table_name}" ADD {unique}INDEX "{index_name}" ({column_names})'
     )
     _DROP_INDEX_TEMPLATE = 'ALTER TABLE "{table_name}" DROP INDEX "{index_name}"'
+    _ADD_UNIQUE_TEMPLATE = 'ALTER TABLE "{table_name}" ADD UNIQUE ("{column_name}")'
+    _DROP_UNIQUE_TEMPLATE = 'ALTER TABLE "{table_name}" DROP INDEX IF EXISTS "{column_name}_2"'
     _ADD_FK_TEMPLATE = 'ALTER TABLE "{table_name}" ADD CONSTRAINT "{fk_name}" FOREIGN KEY ("{db_column}") REFERENCES "{table}" ("{field}") ON DELETE {on_delete}'
     _DROP_FK_TEMPLATE = 'ALTER TABLE "{table_name}" DROP FOREIGN KEY "{fk_name}"'
     _M2M_TABLE_TEMPLATE = (
@@ -41,7 +47,7 @@ class BaseDDL:
         self.client = client
         self.schema_generator = self.schema_generator_cls(client)
 
-    def create_table(self, model: "Type[Model]") -> str:
+    def create_table(self, model: "type[Model]") -> str:
         schema = self.schema_generator._get_table_sql(model, True)["table_creation_string"]
         if tortoise.__version__ <= "0.23.0":
             # Remove extra space
@@ -52,7 +58,7 @@ class BaseDDL:
         return self._DROP_TABLE_TEMPLATE.format(table_name=table_name)
 
     def create_m2m(
-        self, model: "Type[Model]", field_describe: dict, reference_table_describe: dict
+        self, model: "type[Model]", field_describe: dict, reference_table_describe: dict
     ) -> str:
         through = cast(str, field_describe.get("through"))
         description = field_describe.get("description")
@@ -81,7 +87,7 @@ class BaseDDL:
     def drop_m2m(self, table_name: str) -> str:
         return self._DROP_TABLE_TEMPLATE.format(table_name=table_name)
 
-    def _get_default(self, model: "Type[Model]", field_describe: dict) -> Any:
+    def _get_default(self, model: "type[Model]", field_describe: dict) -> Any:
         db_table = model._meta.db_table
         default = field_describe.get("default")
         if isinstance(default, Enum):
@@ -111,7 +117,7 @@ class BaseDDL:
             default = None
         return default
 
-    def add_column(self, model: "Type[Model]", field_describe: dict, is_pk: bool = False) -> str:
+    def add_column(self, model: "type[Model]", field_describe: dict, is_pk: bool = False) -> str:
         return self._add_or_modify_column(model, field_describe, is_pk)
 
     def _add_or_modify_column(self, model, field_describe: dict, is_pk: bool, modify=False) -> str:
@@ -150,16 +156,16 @@ class BaseDDL:
             column = column.replace("  ", " ")
         return template.format(table_name=db_table, column=column)
 
-    def drop_column(self, model: "Type[Model]", column_name: str) -> str:
+    def drop_column(self, model: "type[Model]", column_name: str) -> str:
         return self._DROP_COLUMN_TEMPLATE.format(
             table_name=model._meta.db_table, column_name=column_name
         )
 
-    def modify_column(self, model: "Type[Model]", field_describe: dict, is_pk: bool = False) -> str:
+    def modify_column(self, model: "type[Model]", field_describe: dict, is_pk: bool = False) -> str:
         return self._add_or_modify_column(model, field_describe, is_pk, modify=True)
 
     def rename_column(
-        self, model: "Type[Model]", old_column_name: str, new_column_name: str
+        self, model: "type[Model]", old_column_name: str, new_column_name: str
     ) -> str:
         return self._RENAME_COLUMN_TEMPLATE.format(
             table_name=model._meta.db_table,
@@ -168,7 +174,7 @@ class BaseDDL:
         )
 
     def change_column(
-        self, model: "Type[Model]", old_column_name: str, new_column_name: str, new_column_type: str
+        self, model: "type[Model]", old_column_name: str, new_column_name: str, new_column_type: str
     ) -> str:
         return self._CHANGE_COLUMN_TEMPLATE.format(
             table_name=model._meta.db_table,
@@ -177,7 +183,7 @@ class BaseDDL:
             new_column_type=new_column_type,
         )
 
-    def add_index(self, model: "Type[Model]", field_names: List[str], unique=False) -> str:
+    def add_index(self, model: "type[Model]", field_names: list[str], unique=False) -> str:
         return self._ADD_INDEX_TEMPLATE.format(
             unique="UNIQUE " if unique else "",
             index_name=self.schema_generator._generate_index_name(
@@ -187,7 +193,7 @@ class BaseDDL:
             column_names=", ".join(self.schema_generator.quote(f) for f in field_names),
         )
 
-    def drop_index(self, model: "Type[Model]", field_names: List[str], unique=False) -> str:
+    def drop_index(self, model: "type[Model]", field_names: list[str], unique=False) -> str:
         return self._DROP_INDEX_TEMPLATE.format(
             index_name=self.schema_generator._generate_index_name(
                 "idx" if not unique else "uid", model, field_names
@@ -195,7 +201,7 @@ class BaseDDL:
             table_name=model._meta.db_table,
         )
 
-    def drop_index_by_name(self, model: "Type[Model]", index_name: str) -> str:
+    def drop_index_by_name(self, model: "type[Model]", index_name: str) -> str:
         return self._DROP_INDEX_TEMPLATE.format(
             index_name=index_name,
             table_name=model._meta.db_table,
@@ -217,7 +223,7 @@ class BaseDDL:
         )
 
     def add_fk(
-        self, model: "Type[Model]", field_describe: dict, reference_table_describe: dict
+        self, model: "type[Model]", field_describe: dict, reference_table_describe: dict
     ) -> str:
         db_table = model._meta.db_table
 
@@ -234,13 +240,13 @@ class BaseDDL:
         )
 
     def drop_fk(
-        self, model: "Type[Model]", field_describe: dict, reference_table_describe: dict
+        self, model: "type[Model]", field_describe: dict, reference_table_describe: dict
     ) -> str:
         db_table = model._meta.db_table
         fk_name = self._generate_fk_name(db_table, field_describe, reference_table_describe)
         return self._DROP_FK_TEMPLATE.format(table_name=db_table, fk_name=fk_name)
 
-    def alter_column_default(self, model: "Type[Model]", field_describe: dict) -> str:
+    def alter_column_default(self, model: "type[Model]", field_describe: dict) -> str:
         db_table = model._meta.db_table
         default = self._get_default(model, field_describe)
         return self._ALTER_DEFAULT_TEMPLATE.format(
@@ -249,14 +255,26 @@ class BaseDDL:
             default="SET" + default if default is not None else "DROP DEFAULT",
         )
 
-    def alter_column_null(self, model: "Type[Model]", field_describe: dict) -> str:
+    def alter_column_null(self, model: "type[Model]", field_describe: dict) -> str:
         return self.modify_column(model, field_describe)
 
-    def set_comment(self, model: "Type[Model]", field_describe: dict) -> str:
+    def set_comment(self, model: "type[Model]", field_describe: dict) -> str:
         return self.modify_column(model, field_describe)
 
-    def rename_table(self, model: "Type[Model]", old_table_name: str, new_table_name: str) -> str:
+    def rename_table(self, model: "type[Model]", old_table_name: str, new_table_name: str) -> str:
         db_table = model._meta.db_table
         return self._RENAME_TABLE_TEMPLATE.format(
             table_name=db_table, old_table_name=old_table_name, new_table_name=new_table_name
+        )
+
+    def add_unique_constraint(self, model: "type[Model]", field_name: str) -> str:
+        return self._ADD_UNIQUE_TEMPLATE.format(
+            table_name=model._meta.db_table,
+            column_name=field_name,
+        )
+
+    def drop_unique_constraint(self, model: "type[Model]", field_name: str) -> str:
+        return self._DROP_UNIQUE_TEMPLATE.format(
+            table_name=model._meta.db_table,
+            column_name=field_name,
         )

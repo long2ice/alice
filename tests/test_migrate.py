@@ -366,6 +366,21 @@ old_models_describe = {
                 "db_field_types": {"": "VARCHAR(200)"},
             },
             {
+                "name": "company",
+                "field_type": "CharField",
+                "db_column": "company",
+                "python_type": "str",
+                "generated": False,
+                "nullable": False,
+                "unique": False,
+                "indexed": True,
+                "default": None,
+                "description": None,
+                "docstring": None,
+                "constraints": {"max_length": 100},
+                "db_field_types": {"": "VARCHAR(100)"},
+            },
+            {
                 "name": "is_primary",
                 "field_type": "BooleanField",
                 "db_column": "is_primary",
@@ -929,6 +944,7 @@ def test_migrate(mocker: MockerFixture):
     - drop fk field: Email.user
     - drop field: User.avatar
     - add index: Email.email
+    - add unique to indexed field: Email.company
     - add many to many: Email.users
     - add one to one: Email.config
     - remove unique: Category.title
@@ -981,6 +997,7 @@ def test_migrate(mocker: MockerFixture):
             "ALTER TABLE `email` RENAME COLUMN `id` TO `email_id`",
             "ALTER TABLE `product` ADD INDEX `idx_product_name_869427` (`name`, `type_db_alias`)",
             "ALTER TABLE `email` ADD INDEX `idx_email_email_4a1a33` (`email`)",
+            "ALTER TABLE `email` ADD UNIQUE (`company`)",
             "ALTER TABLE `product` ADD UNIQUE INDEX `uid_product_name_869427` (`name`, `type_db_alias`)",
             "ALTER TABLE `product` ALTER COLUMN `view_num` SET DEFAULT 0",
             "ALTER TABLE `product` RENAME COLUMN `is_delete` TO `is_deleted`",
@@ -1023,6 +1040,7 @@ def test_migrate(mocker: MockerFixture):
             "ALTER TABLE `product` ADD UNIQUE INDEX `uuid` (`uuid`)",
             "ALTER TABLE `product` DROP INDEX `idx_product_name_869427`",
             "ALTER TABLE `email` DROP INDEX `idx_email_email_4a1a33`",
+            "ALTER TABLE `email` DROP INDEX `company_2`",
             "ALTER TABLE `product` DROP INDEX `uid_product_name_869427`",
             "ALTER TABLE `product` ALTER COLUMN `view_num` DROP DEFAULT",
             "ALTER TABLE `product` RENAME COLUMN `is_deleted` TO `is_delete`",
@@ -1061,6 +1079,7 @@ def test_migrate(mocker: MockerFixture):
             'ALTER TABLE "email" DROP COLUMN "user_id"',
             'ALTER TABLE "email" ADD CONSTRAINT "fk_email_config_76a9dc71" FOREIGN KEY ("config_id") REFERENCES "config" ("id") ON DELETE CASCADE',
             'ALTER TABLE "email" ADD "config_id" INT NOT NULL UNIQUE',
+            'ALTER TABLE "email" ADD UNIQUE ("company")',
             'DROP INDEX IF EXISTS "uid_product_uuid_d33c18"',
             'ALTER TABLE "product" DROP COLUMN "uuid"',
             'ALTER TABLE "product" ALTER COLUMN "view_num" SET DEFAULT 0',
@@ -1103,6 +1122,7 @@ def test_migrate(mocker: MockerFixture):
             'ALTER TABLE "email" RENAME COLUMN "email_id" TO "id"',
             'ALTER TABLE "email" DROP COLUMN "config_id"',
             'ALTER TABLE "email" DROP CONSTRAINT IF EXISTS "fk_email_config_76a9dc71"',
+            'ALTER TABLE "email" DROP INDEX IF EXISTS "company_2"',
             'ALTER TABLE "product" ADD "uuid" INT NOT NULL UNIQUE',
             'CREATE UNIQUE INDEX "uid_product_uuid_d33c18" ON "product" ("uuid")',
             'ALTER TABLE "product" ALTER COLUMN "view_num" DROP DEFAULT',

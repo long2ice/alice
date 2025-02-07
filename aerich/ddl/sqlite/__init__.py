@@ -12,6 +12,10 @@ class SqliteDDL(BaseDDL):
     DIALECT = SqliteSchemaGenerator.DIALECT
     _ADD_INDEX_TEMPLATE = 'CREATE {unique}INDEX "{index_name}" ON "{table_name}" ({column_names})'
     _DROP_INDEX_TEMPLATE = 'DROP INDEX IF EXISTS "{index_name}"'
+    _ADD_UNIQUE_TEMPLATE = (
+        'CREATE UNIQUE INDEX "{column_name}_2" ON "{table_name}" ("{column_name}")'
+    )
+    _DROP_UNIQUE_TEMPLATE = 'DROP INDEX IF EXISTS "{column_name}_2"'
 
     def modify_column(self, model: "Type[Model]", field_object: dict, is_pk: bool = True):
         raise NotSupportError("Modify column is unsupported in SQLite.")
