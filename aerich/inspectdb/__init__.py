@@ -108,13 +108,20 @@ class Inspect:
             self.tables = await self.get_all_tables()
         result = "from tortoise import Model, fields\n\n\n"
         tables = []
+
         for table in self.tables:
             columns = await self.get_columns(table)
             fields = []
             model = self._table_template.format(table=table.title().replace("_", ""))
+            is_exist_fields = []
             for column in columns:
+                if column.name in is_exist_fields:
+                    continue
+                if column.data_type in ['char', 'CHAR']:
+                    column.data_type = "varchar"
                 field = self.field_map[column.data_type](**column.translate())
                 fields.append("    " + field)
+                is_exist_fields.append(column.name)
             tables.append(model + "\n".join(fields))
         return result + "\n\n\n".join(tables)
 
