@@ -56,7 +56,7 @@ class Product(Model):
     view_num = fields.IntField(description="View Num")
     sort = fields.IntField()
     is_reviewed = fields.BooleanField(description="Is Reviewed")
-    type = fields.IntEnumField(
+    type: int = fields.IntEnumField(
         ProductType, description="Product Type", source_field="type_db_alias"
     )
     image = fields.CharField(max_length=200)

@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 import datetime
 import uuid
 from enum import IntEnum
 
 from tortoise import Model, fields
+from tortoise.contrib.mysql.indexes import FullTextIndex
+from tortoise.contrib.postgres.indexes import HashIndex
 from tortoise.indexes import Index
 
+from tests._utils import Dialect
 from tests.indexes import CustomIndex
 
 
@@ -63,6 +68,14 @@ class Category(Model):
     title = fields.CharField(max_length=20, unique=False)
     created_at = fields.DatetimeField(auto_now_add=True)
 
+    class Meta:
+        if Dialect.is_postgres():
+            indexes = [HashIndex(fields=("slug",))]
+        elif Dialect.is_mysql():
+            indexes = [FullTextIndex(fields=("slug",))]  # type:ignore
+        else:
+            indexes = [Index(fields=("slug",))]  # type:ignore
+
 
 class Product(Model):
     categories: fields.ManyToManyRelation[Category] = fields.ManyToManyField(
@@ -75,7 +88,7 @@ class Product(Model):
     view_num = fields.IntField(description="View Num", default=0)
     sort = fields.IntField()
     is_reviewed = fields.BooleanField(description="Is Reviewed")
-    type = fields.IntEnumField(
+    type: int = fields.IntEnumField(
         ProductType, description="Product Type", source_field="type_db_alias"
     )
     pic = fields.CharField(max_length=200)

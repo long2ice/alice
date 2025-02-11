@@ -35,7 +35,7 @@ old_models_describe = {
         "description": None,
         "docstring": None,
         "unique_together": [],
-        "indexes": [],
+        "indexes": [describe_index(Index(fields=("slug",)))],
         "pk_field": {
             "name": "id",
             "field_type": "IntField",
@@ -929,6 +929,7 @@ def test_migrate(mocker: MockerFixture):
     - drop fk field: Email.user
     - drop field: User.avatar
     - add index: Email.email
+    - change index type for indexed field: Email.slug
     - add many to many: Email.users
     - add one to one: Email.config
     - remove unique: Category.title
@@ -965,6 +966,8 @@ def test_migrate(mocker: MockerFixture):
             "ALTER TABLE `category` DROP INDEX `title`",
             "ALTER TABLE `category` RENAME COLUMN `user_id` TO `owner_id`",
             "ALTER TABLE `category` ADD CONSTRAINT `fk_category_user_110d4c63` FOREIGN KEY (`owner_id`) REFERENCES `user` (`id`) ON DELETE CASCADE",
+            "ALTER TABLE `category` ADD FULLTEXT INDEX `idx_category_slug_e9bcff` (`slug`)",
+            "ALTER TABLE `category` DROP INDEX `idx_category_slug_e9bcff`",
             "ALTER TABLE `email` DROP COLUMN `user_id`",
             "ALTER TABLE `config` DROP COLUMN `name`",
             "ALTER TABLE `config` DROP INDEX `name`",
@@ -1007,6 +1010,8 @@ def test_migrate(mocker: MockerFixture):
             "ALTER TABLE `category` ADD UNIQUE INDEX `title` (`title`)",
             "ALTER TABLE `category` RENAME COLUMN `owner_id` TO `user_id`",
             "ALTER TABLE `category` DROP FOREIGN KEY `fk_category_user_110d4c63`",
+            "ALTER TABLE `category` ADD INDEX `idx_category_slug_e9bcff` (`slug`)",
+            "ALTER TABLE `category` DROP INDEX `idx_category_slug_e9bcff`",
             "ALTER TABLE `config` ADD `name` VARCHAR(100) NOT NULL UNIQUE",
             "ALTER TABLE `config` ADD UNIQUE INDEX `name` (`name`)",
             "ALTER TABLE `config` DROP FOREIGN KEY `fk_config_user_17daa970`",
@@ -1050,6 +1055,8 @@ def test_migrate(mocker: MockerFixture):
             'ALTER TABLE "category" ALTER COLUMN "slug" TYPE VARCHAR(100) USING "slug"::VARCHAR(100)',
             'ALTER TABLE "category" RENAME COLUMN "user_id" TO "owner_id"',
             'ALTER TABLE "category" ADD CONSTRAINT "fk_category_user_110d4c63" FOREIGN KEY ("owner_id") REFERENCES "user" ("id") ON DELETE CASCADE',
+            'CREATE INDEX "idx_category_slug_e9bcff" ON "category" USING HASH ("slug")',
+            'DROP INDEX IF EXISTS "idx_category_slug_e9bcff"',
             'ALTER TABLE "config" DROP COLUMN "name"',
             'DROP INDEX IF EXISTS "uid_config_name_2c83c8"',
             'ALTER TABLE "config" ADD "user_id" INT NOT NULL',
@@ -1092,6 +1099,8 @@ def test_migrate(mocker: MockerFixture):
             'ALTER TABLE "category" ALTER COLUMN "slug" TYPE VARCHAR(200) USING "slug"::VARCHAR(200)',
             'ALTER TABLE "category" RENAME COLUMN "owner_id" TO "user_id"',
             'ALTER TABLE "category" DROP CONSTRAINT IF EXISTS "fk_category_user_110d4c63"',
+            'DROP INDEX IF EXISTS "idx_category_slug_e9bcff"',
+            'CREATE INDEX "idx_category_slug_e9bcff" ON "category" ("slug")',
             'ALTER TABLE "config" ADD "name" VARCHAR(100) NOT NULL UNIQUE',
             'CREATE UNIQUE INDEX "uid_config_name_2c83c8" ON "config" ("name")',
             'ALTER TABLE "config" ALTER COLUMN "status" SET DEFAULT 1',

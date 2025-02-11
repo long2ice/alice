@@ -55,6 +55,9 @@ class Category(Model):
     title = fields.CharField(max_length=20, unique=True)
     created_at = fields.DatetimeField(auto_now_add=True)
 
+    class Meta:
+        indexes = [Index(fields=("slug",))]
+
 
 class Product(Model):
     categories: fields.ManyToManyRelation[Category] = fields.ManyToManyField("models.Category")
@@ -63,7 +66,7 @@ class Product(Model):
     view_num = fields.IntField(description="View Num")
     sort = fields.IntField()
     is_review = fields.BooleanField(description="Is Reviewed")
-    type = fields.IntEnumField(
+    type: int = fields.IntEnumField(
         ProductType, description="Product Type", source_field="type_db_alias"
     )
     image = fields.CharField(max_length=200)

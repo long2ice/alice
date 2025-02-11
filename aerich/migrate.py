@@ -13,6 +13,7 @@ from tortoise import BaseDBAsyncClient, Model, Tortoise
 from tortoise.exceptions import OperationalError
 from tortoise.indexes import Index
 
+from aerich.coder import load_index
 from aerich.ddl import BaseDDL
 from aerich.models import MAX_VERSION_LENGTH, Aerich
 from aerich.utils import (
@@ -245,6 +246,8 @@ class Migrate:
         for x in cls._handle_indexes(model, model_describe.get("indexes", [])):
             if isinstance(x, Index):
                 indexes.add(x)
+            elif isinstance(x, dict):
+                indexes.add(load_index(x))
             else:
                 indexes.add(cast("tuple[str, ...]", tuple(x)))
         return indexes
@@ -584,62 +587,63 @@ class Migrate:
 
                 # change fields
                 for field_name in set(new_data_fields_name).intersection(set(old_data_fields_name)):
-                    old_data_field = cls.get_field_by_name(field_name, old_data_fields)
-                    new_data_field = cls.get_field_by_name(field_name, new_data_fields)
-                    changes = cls._exclude_extra_field_types(diff(old_data_field, new_data_field))
-                    modified = False
-                    for change in changes:
-                        _, option, old_new = change
-                        if option == "indexed":
-                            # change index
-                            if old_new[0] is False and old_new[1] is True:
-                                unique = new_data_field.get("unique")
-                                cls._add_operator(
-                                    cls._add_index(model, (field_name,), unique), upgrade, True
-                                )
-                            else:
-                                unique = old_data_field.get("unique")
-                                cls._add_operator(
-                                    cls._drop_index(model, (field_name,), unique), upgrade, True
-                                )
-                        elif option == "db_field_types.":
-                            if new_data_field.get("field_type") == "DecimalField":
-                                # modify column
-                                cls._add_operator(
-                                    cls._modify_field(model, new_data_field),
-                                    upgrade,
-                                )
-                            else:
-                                continue
-                        elif option == "default":
-                            if not (
-                                is_default_function(old_new[0]) or is_default_function(old_new[1])
-                            ):
-                                # change column default
-                                cls._add_operator(
-                                    cls._alter_default(model, new_data_field), upgrade
-                                )
-                        elif option == "unique":
-                            # because indexed include it
-                            continue
-                        elif option == "nullable":
-                            # change nullable
-                            cls._add_operator(cls._alter_null(model, new_data_field), upgrade)
-                        elif option == "description":
-                            # change comment
-                            cls._add_operator(cls._set_comment(model, new_data_field), upgrade)
-                        else:
-                            if modified:
-                                continue
-                            # modify column
-                            cls._add_operator(
-                                cls._modify_field(model, new_data_field),
-                                upgrade,
-                            )
-                            modified = True
+                    cls._handle_field_changes(
+                        model, field_name, old_data_fields, new_data_fields, upgrade
+                    )
 
         for old_model in old_models.keys() - new_models.keys():
             cls._add_operator(cls.drop_model(old_models[old_model]["table"]), upgrade)
+
+    @classmethod
+    def _handle_field_changes(
+        cls,
+        model: type[Model],
+        field_name: str,
+        old_data_fields: list[dict],
+        new_data_fields: list[dict],
+        upgrade: bool,
+    ) -> None:
+        old_data_field = cls.get_field_by_name(field_name, old_data_fields)
+        new_data_field = cls.get_field_by_name(field_name, new_data_fields)
+        changes = cls._exclude_extra_field_types(diff(old_data_field, new_data_field))
+        options = {c[1] for c in changes}
+        modified = False
+        for change in changes:
+            _, option, old_new = change
+            if option == "indexed":
+                # change index
+                if old_new[0] is False and old_new[1] is True:
+                    unique = new_data_field.get("unique")
+                    cls._add_operator(cls._add_index(model, (field_name,), unique), upgrade, True)
+                else:
+                    unique = old_data_field.get("unique")
+                    cls._add_operator(cls._drop_index(model, (field_name,), unique), upgrade, True)
+            elif option == "db_field_types.":
+                if new_data_field.get("field_type") == "DecimalField":
+                    # modify column
+                    cls._add_operator(cls._modify_field(model, new_data_field), upgrade)
+            elif option == "default":
+                if not (is_default_function(old_new[0]) or is_default_function(old_new[1])):
+                    # change column default
+                    cls._add_operator(cls._alter_default(model, new_data_field), upgrade)
+            elif option == "unique":
+                if "indexed" in options:
+                    # indexed include it
+                    continue
+                # Change unique for indexed field, e.g.: `db_index=True, unique=False` --> `db_index=True, unique=True`
+                # TODO
+            elif option == "nullable":
+                # change nullable
+                cls._add_operator(cls._alter_null(model, new_data_field), upgrade)
+            elif option == "description":
+                # change comment
+                cls._add_operator(cls._set_comment(model, new_data_field), upgrade)
+            else:
+                if modified:
+                    continue
+                # modify column
+                cls._add_operator(cls._modify_field(model, new_data_field), upgrade)
+                modified = True
 
     @classmethod
     def rename_table(cls, model: type[Model], old_table_name: str, new_table_name: str) -> str:
@@ -685,6 +689,16 @@ class Migrate:
         cls, model: type[Model], fields_name: Union[Iterable[str], Index], unique=False
     ) -> str:
         if isinstance(fields_name, Index):
+            if cls.dialect == "mysql":
+                # schema_generator of MySQL return a empty index sql
+                if hasattr(fields_name, "field_names"):
+                    # tortoise>=0.24
+                    fields = fields_name.field_names
+                else:
+                    # TODO: remove else when drop support for tortoise<0.24
+                    if not (fields := fields_name.fields):
+                        fields = [getattr(i, "get_sql")() for i in fields_name.expressions]
+                return cls.ddl.drop_index(model, fields, unique, name=fields_name.name)
             return cls.ddl.drop_index_by_name(
                 model, fields_name.index_name(cls.ddl.schema_generator, model)
             )
@@ -696,7 +710,23 @@ class Migrate:
         cls, model: type[Model], fields_name: Union[Iterable[str], Index], unique=False
     ) -> str:
         if isinstance(fields_name, Index):
-            return fields_name.get_sql(cls.ddl.schema_generator, model, False)
+            if cls.dialect == "mysql":
+                # schema_generator of MySQL return a empty index sql
+                if hasattr(fields_name, "field_names"):
+                    # tortoise>=0.24
+                    fields = fields_name.field_names
+                else:
+                    # TODO: remove else when drop support for tortoise<0.24
+                    if not (fields := fields_name.fields):
+                        fields = [getattr(i, "get_sql")() for i in fields_name.expressions]
+                return cls.ddl.add_index(
+                    model,
+                    fields,
+                    name=fields_name.name,
+                    index_type=fields_name.INDEX_TYPE,
+                    extra=fields_name.extra,
+                )
+            return fields_name.get_sql(cls.ddl.schema_generator, model, False).replace("  ", " ")
         field_names = cls._resolve_fk_fields_name(model, fields_name)
         return cls.ddl.add_index(model, field_names, unique)
 
