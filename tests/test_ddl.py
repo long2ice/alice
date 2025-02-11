@@ -184,6 +184,14 @@ def test_add_index():
     if isinstance(Migrate.ddl, MysqlDDL):
         assert index == "ALTER TABLE `category` ADD INDEX `idx_category_name_8b0cb9` (`name`)"
         assert index_u == "ALTER TABLE `category` ADD UNIQUE INDEX `name` (`name`)"
+    elif isinstance(Migrate.ddl, PostgresDDL):
+        assert (
+            index == 'CREATE INDEX IF NOT EXISTS "idx_category_name_8b0cb9" ON "category" ("name")'
+        )
+        assert (
+            index_u
+            == 'CREATE UNIQUE INDEX IF NOT EXISTS "uid_category_name_8b0cb9" ON "category" ("name")'
+        )
     else:
         assert index == 'CREATE INDEX "idx_category_name_8b0cb9" ON "category" ("name")'
         assert index_u == 'CREATE UNIQUE INDEX "uid_category_name_8b0cb9" ON "category" ("name")'

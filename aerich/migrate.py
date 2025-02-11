@@ -442,10 +442,10 @@ class Migrate:
                     cls._add_operator(cls._drop_index(model, index, True), upgrade, True)
                 # add indexes
                 for idx in new_indexes.difference(old_indexes):
-                    cls._add_operator(cls._add_index(model, idx, False), upgrade, True)
+                    cls._add_operator(cls._add_index(model, idx), upgrade, fk_m2m_index=True)
                 # remove indexes
                 for idx in old_indexes.difference(new_indexes):
-                    cls._add_operator(cls._drop_index(model, idx, False), upgrade, True)
+                    cls._add_operator(cls._drop_index(model, idx), upgrade, fk_m2m_index=True)
                 old_data_fields = list(
                     filter(
                         lambda x: x.get("db_field_types") is not None,
@@ -726,7 +726,13 @@ class Migrate:
                     index_type=fields_name.INDEX_TYPE,
                     extra=fields_name.extra,
                 )
-            return fields_name.get_sql(cls.ddl.schema_generator, model, False).replace("  ", " ")
+            sql = fields_name.get_sql(cls.ddl.schema_generator, model, safe=True)
+            if tortoise.__version__ < "0.24":
+                sql = sql.replace("  ", " ")
+                if cls.dialect == "postgres" and (exists := "IF NOT EXISTS ") not in sql:
+                    idx = " INDEX "
+                    sql = sql.replace(idx, idx + exists)
+            return sql
         field_names = cls._resolve_fk_fields_name(model, fields_name)
         return cls.ddl.add_index(model, field_names, unique)
 
