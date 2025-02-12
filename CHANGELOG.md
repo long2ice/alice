@@ -8,6 +8,7 @@
 - feat: add --fake to upgrade/downgrade. ([#398])
 
 #### Fixed
+- fix: aerich migrate raises tortoise.exceptions.FieldError when `index.INDEX_TYPE` is not empty. ([#415])
 - fix: inspectdb raise KeyError 'int2' for smallint. ([#401])
 - No migration occurs as expected when adding `unique=True` to indexed field. ([#404])
 
@@ -18,6 +19,7 @@
 [#401]: https://github.com/tortoise/aerich/pull/401
 [#404]: https://github.com/tortoise/aerich/pull/404
 [#412]: https://github.com/tortoise/aerich/pull/412
+[#415]: https://github.com/tortoise/aerich/pull/415
 
 ### [0.8.1](../../releases/tag/v0.8.1) - 2024-12-27
 

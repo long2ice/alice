@@ -35,7 +35,7 @@ old_models_describe = {
         "description": None,
         "docstring": None,
         "unique_together": [],
-        "indexes": [],
+        "indexes": [describe_index(Index(fields=("slug",)))],
         "pk_field": {
             "name": "id",
             "field_type": "IntField",
@@ -945,6 +945,7 @@ def test_migrate(mocker: MockerFixture):
     - drop field: User.avatar
     - add index: Email.email
     - add unique to indexed field: Email.company
+    - change index type for indexed field: Email.slug
     - add many to many: Email.users
     - add one to one: Email.config
     - remove unique: Category.title
@@ -981,6 +982,8 @@ def test_migrate(mocker: MockerFixture):
             "ALTER TABLE `category` DROP INDEX `title`",
             "ALTER TABLE `category` RENAME COLUMN `user_id` TO `owner_id`",
             "ALTER TABLE `category` ADD CONSTRAINT `fk_category_user_110d4c63` FOREIGN KEY (`owner_id`) REFERENCES `user` (`id`) ON DELETE CASCADE",
+            "ALTER TABLE `category` ADD FULLTEXT INDEX `idx_category_slug_e9bcff` (`slug`)",
+            "ALTER TABLE `category` DROP INDEX `idx_category_slug_e9bcff`",
             "ALTER TABLE `email` DROP COLUMN `user_id`",
             "ALTER TABLE `config` DROP COLUMN `name`",
             "ALTER TABLE `config` DROP INDEX `name`",
@@ -1024,6 +1027,8 @@ def test_migrate(mocker: MockerFixture):
             "ALTER TABLE `category` ADD UNIQUE INDEX `title` (`title`)",
             "ALTER TABLE `category` RENAME COLUMN `owner_id` TO `user_id`",
             "ALTER TABLE `category` DROP FOREIGN KEY `fk_category_user_110d4c63`",
+            "ALTER TABLE `category` ADD INDEX `idx_category_slug_e9bcff` (`slug`)",
+            "ALTER TABLE `category` DROP INDEX `idx_category_slug_e9bcff`",
             "ALTER TABLE `config` ADD `name` VARCHAR(100) NOT NULL UNIQUE",
             "ALTER TABLE `config` ADD UNIQUE INDEX `name` (`name`)",
             "ALTER TABLE `config` DROP FOREIGN KEY `fk_config_user_17daa970`",
@@ -1068,6 +1073,8 @@ def test_migrate(mocker: MockerFixture):
             'ALTER TABLE "category" ALTER COLUMN "slug" TYPE VARCHAR(100) USING "slug"::VARCHAR(100)',
             'ALTER TABLE "category" RENAME COLUMN "user_id" TO "owner_id"',
             'ALTER TABLE "category" ADD CONSTRAINT "fk_category_user_110d4c63" FOREIGN KEY ("owner_id") REFERENCES "user" ("id") ON DELETE CASCADE',
+            'CREATE INDEX IF NOT EXISTS "idx_category_slug_e9bcff" ON "category" USING HASH ("slug")',
+            'DROP INDEX IF EXISTS "idx_category_slug_e9bcff"',
             'ALTER TABLE "config" DROP COLUMN "name"',
             'DROP INDEX IF EXISTS "uid_config_name_2c83c8"',
             'ALTER TABLE "config" ADD "user_id" INT NOT NULL',
@@ -1089,12 +1096,12 @@ def test_migrate(mocker: MockerFixture):
             'ALTER TABLE "user" ALTER COLUMN "password" TYPE VARCHAR(100) USING "password"::VARCHAR(100)',
             'ALTER TABLE "user" DROP COLUMN "avatar"',
             'ALTER TABLE "user" ALTER COLUMN "longitude" TYPE DECIMAL(10,8) USING "longitude"::DECIMAL(10,8)',
-            'CREATE INDEX "idx_product_name_869427" ON "product" ("name", "type_db_alias")',
-            'CREATE INDEX "idx_email_email_4a1a33" ON "email" ("email")',
+            'CREATE INDEX IF NOT EXISTS "idx_product_name_869427" ON "product" ("name", "type_db_alias")',
+            'CREATE INDEX IF NOT EXISTS "idx_email_email_4a1a33" ON "email" ("email")',
             'CREATE TABLE "email_user" (\n    "email_id" INT NOT NULL REFERENCES "email" ("email_id") ON DELETE CASCADE,\n    "user_id" INT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE\n)',
             'CREATE TABLE IF NOT EXISTS "newmodel" (\n    "id" SERIAL NOT NULL PRIMARY KEY,\n    "name" VARCHAR(50) NOT NULL\n);\nCOMMENT ON COLUMN "config"."user_id" IS \'User\'',
-            'CREATE UNIQUE INDEX "uid_product_name_869427" ON "product" ("name", "type_db_alias")',
-            'CREATE UNIQUE INDEX "uid_user_usernam_9987ab" ON "user" ("username")',
+            'CREATE UNIQUE INDEX IF NOT EXISTS "uid_product_name_869427" ON "product" ("name", "type_db_alias")',
+            'CREATE UNIQUE INDEX IF NOT EXISTS "uid_user_usernam_9987ab" ON "user" ("username")',
             'CREATE TABLE "product_user" (\n    "product_id" INT NOT NULL REFERENCES "product" ("id") ON DELETE CASCADE,\n    "user_id" INT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE\n)',
             'CREATE TABLE "config_category_map" (\n    "category_id" INT NOT NULL REFERENCES "category" ("id") ON DELETE CASCADE,\n    "config_id" INT NOT NULL REFERENCES "config" ("id") ON DELETE CASCADE\n)',
             'DROP TABLE IF EXISTS "config_category"',
@@ -1106,13 +1113,15 @@ def test_migrate(mocker: MockerFixture):
         assert not upgrade_less_than_expected
 
         expected_downgrade_operators = {
-            'CREATE UNIQUE INDEX "uid_category_title_f7fc03" ON "category" ("title")',
+            'CREATE UNIQUE INDEX IF NOT EXISTS "uid_category_title_f7fc03" ON "category" ("title")',
             'ALTER TABLE "category" ALTER COLUMN "name" SET NOT NULL',
             'ALTER TABLE "category" ALTER COLUMN "slug" TYPE VARCHAR(200) USING "slug"::VARCHAR(200)',
             'ALTER TABLE "category" RENAME COLUMN "owner_id" TO "user_id"',
             'ALTER TABLE "category" DROP CONSTRAINT IF EXISTS "fk_category_user_110d4c63"',
+            'DROP INDEX IF EXISTS "idx_category_slug_e9bcff"',
+            'CREATE INDEX IF NOT EXISTS "idx_category_slug_e9bcff" ON "category" ("slug")',
             'ALTER TABLE "config" ADD "name" VARCHAR(100) NOT NULL UNIQUE',
-            'CREATE UNIQUE INDEX "uid_config_name_2c83c8" ON "config" ("name")',
+            'CREATE UNIQUE INDEX IF NOT EXISTS "uid_config_name_2c83c8" ON "config" ("name")',
             'ALTER TABLE "config" ALTER COLUMN "status" SET DEFAULT 1',
             'ALTER TABLE "config" DROP CONSTRAINT IF EXISTS "fk_config_user_17daa970"',
             'ALTER TABLE "config" RENAME TO "configs"',
@@ -1124,7 +1133,7 @@ def test_migrate(mocker: MockerFixture):
             'ALTER TABLE "email" DROP CONSTRAINT IF EXISTS "fk_email_config_76a9dc71"',
             'ALTER TABLE "email" DROP INDEX IF EXISTS "company_2"',
             'ALTER TABLE "product" ADD "uuid" INT NOT NULL UNIQUE',
-            'CREATE UNIQUE INDEX "uid_product_uuid_d33c18" ON "product" ("uuid")',
+            'CREATE UNIQUE INDEX IF NOT EXISTS "uid_product_uuid_d33c18" ON "product" ("uuid")',
             'ALTER TABLE "product" ALTER COLUMN "view_num" DROP DEFAULT',
             'ALTER TABLE "product" RENAME COLUMN "pic" TO "image"',
             'ALTER TABLE "product" RENAME COLUMN "is_deleted" TO "is_delete"',
