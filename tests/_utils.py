@@ -44,3 +44,27 @@ async def init_db(tortoise_orm, generate_schemas=True) -> None:
 def copy_files(*src_files: Path, target_dir: Path) -> None:
     for src in src_files:
         shutil.copy(src, target_dir)
+
+
+class Dialect:
+    test_db_url: str
+
+    @classmethod
+    def load_env(cls) -> None:
+        if getattr(cls, "test_db_url", None) is None:
+            cls.test_db_url = os.getenv("TEST_DB", "")
+
+    @classmethod
+    def is_postgres(cls) -> bool:
+        cls.load_env()
+        return "postgres" in cls.test_db_url
+
+    @classmethod
+    def is_mysql(cls) -> bool:
+        cls.load_env()
+        return "mysql" in cls.test_db_url
+
+    @classmethod
+    def is_sqlite(cls) -> bool:
+        cls.load_env()
+        return not cls.test_db_url or "sqlite" in cls.test_db_url
