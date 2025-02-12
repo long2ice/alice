@@ -25,8 +25,8 @@ class MysqlDDL(BaseDDL):
     )
     _ADD_INDEX_TEMPLATE = "ALTER TABLE `{table_name}` ADD {index_type}{unique}INDEX `{index_name}` ({column_names}){extra}"
     _DROP_INDEX_TEMPLATE = "ALTER TABLE `{table_name}` DROP INDEX `{index_name}`"
-    _ADD_UNIQUE_TEMPLATE = "ALTER TABLE `{table_name}` ADD UNIQUE (`{column_name}`)"
-    _DROP_UNIQUE_TEMPLATE = "ALTER TABLE `{table_name}` DROP INDEX `{column_name}_2`"
+    _ADD_UNIQUE_TEMPLATE = "ALTER TABLE `{table_name}` DROP INDEX `{index_name}`, ADD UNIQUE (`{column_name}`)"
+    _DROP_UNIQUE_TEMPLATE = "ALTER TABLE `{table_name}` DROP INDEX `{column_name}`"
     _ADD_FK_TEMPLATE = "ALTER TABLE `{table_name}` ADD CONSTRAINT `{fk_name}` FOREIGN KEY (`{db_column}`) REFERENCES `{table}` (`{field}`) ON DELETE {on_delete}"
     _DROP_FK_TEMPLATE = "ALTER TABLE `{table_name}` DROP FOREIGN KEY `{fk_name}`"
     _M2M_TABLE_TEMPLATE = (
@@ -49,3 +49,8 @@ class MysqlDDL(BaseDDL):
         else:
             index_prefix = "idx"
         return self.schema_generator._generate_index_name(index_prefix, model, field_names)
+
+    def drop_unique_constraint(self, model: type[Model], field_name: str) -> str | list[str]:
+        drop_unique = super().drop_unique_constraint(model, field_name)
+        create_idx = self.add_index(model, [field_name])
+        return [drop_unique, create_idx]

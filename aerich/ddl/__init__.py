@@ -25,8 +25,8 @@ class BaseDDL:
     )
     _ADD_INDEX_TEMPLATE = 'ALTER TABLE "{table_name}" ADD {index_type}{unique}INDEX "{index_name}" ({column_names}){extra}'
     _DROP_INDEX_TEMPLATE = 'ALTER TABLE "{table_name}" DROP INDEX IF EXISTS "{index_name}"'
-    _ADD_UNIQUE_TEMPLATE = 'ALTER TABLE "{table_name}" ADD UNIQUE ("{column_name}")'
-    _DROP_UNIQUE_TEMPLATE = 'ALTER TABLE "{table_name}" DROP INDEX IF EXISTS "{column_name}_2"'
+    _ADD_UNIQUE_TEMPLATE = 'CREATE UNIQUE INDEX "{column_name}" ON "{table_name}" ("{column_name}")'
+    _DROP_UNIQUE_TEMPLATE = 'DROP INDEX IF EXISTS "{column_name}"'
     _ADD_FK_TEMPLATE = 'ALTER TABLE "{table_name}" ADD CONSTRAINT "{fk_name}" FOREIGN KEY ("{db_column}") REFERENCES "{table}" ("{field}") ON DELETE {on_delete}'
     _DROP_FK_TEMPLATE = 'ALTER TABLE "{table_name}" DROP FOREIGN KEY "{fk_name}"'
     _M2M_TABLE_TEMPLATE = (
@@ -273,13 +273,13 @@ class BaseDDL:
             table_name=db_table, old_table_name=old_table_name, new_table_name=new_table_name
         )
 
-    def add_unique_constraint(self, model: "type[Model]", field_name: str) -> str:
+    def add_unique_constraint(self, model: type[Model], field_name: str) -> str:
         return self._ADD_UNIQUE_TEMPLATE.format(
             table_name=model._meta.db_table,
             column_name=field_name,
         )
 
-    def drop_unique_constraint(self, model: "type[Model]", field_name: str) -> str:
+    def drop_unique_constraint(self, model: type[Model], field_name: str) -> str | list[str]:
         return self._DROP_UNIQUE_TEMPLATE.format(
             table_name=model._meta.db_table,
             column_name=field_name,

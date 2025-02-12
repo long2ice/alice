@@ -631,12 +631,15 @@ class Migrate:
                     # indexed include it
                     continue
                 # Change unique for indexed field, e.g.: `db_index=True, unique=False` --> `db_index=True, unique=True`
-                change_unique_constraint = (
-                    cls.ddl.add_unique_constraint
-                    if old_new[0] is False and old_new[1] is True
-                    else cls.ddl.drop_unique_constraint
-                )
-                cls._add_operator(change_unique_constraint(model, field_name), upgrade, True)
+                if old_new[0] is False and old_new[1] is True
+                    cls._add_operator(cls.ddl.add_unique_constraint(model, field_name), upgrade, True)
+                else:
+                    drop_unique = cls.ddl.drop_unique_constraint(model, field_name)
+                    if isinstance(drop_unique, str):
+                        cls._add_operator(drop_unique, upgrade, True)
+                    else:
+                        for sql in drop_unique:
+                            cls._add_operator(sql, upgrade, True)
             elif option == "nullable":
                 # change nullable
                 cls._add_operator(cls._alter_null(model, new_data_field), upgrade)
