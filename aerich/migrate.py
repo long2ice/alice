@@ -121,7 +121,7 @@ class Migrate:
         return int(version.split("_", 1)[0])
 
     @classmethod
-    async def generate_version(cls, name=None) -> str:
+    async def generate_version(cls, name: str | None = None) -> str:
         now = datetime.now().strftime("%Y%m%d%H%M%S").replace("/", "")
         last_version_num = await cls._get_last_version_num()
         if last_version_num is None:
@@ -198,7 +198,7 @@ class Migrate:
         )
 
     @classmethod
-    def _add_operator(cls, operator: str, upgrade=True, fk_m2m_index=False) -> None:
+    def _add_operator(cls, operator: str, upgrade: bool = True, fk_m2m_index: bool = False) -> None:
         """
         add operator,differentiate fk because fk is order limit
         :param operator:

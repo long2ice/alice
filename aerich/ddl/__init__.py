@@ -116,7 +116,9 @@ class BaseDDL:
     def add_column(self, model: type[Model], field_describe: dict, is_pk: bool = False) -> str:
         return self._add_or_modify_column(model, field_describe, is_pk)
 
-    def _add_or_modify_column(self, model, field_describe: dict, is_pk: bool, modify=False) -> str:
+    def _add_or_modify_column(
+        self, model: type[Model], field_describe: dict, is_pk: bool, modify: bool = False
+    ) -> str:
         db_table = model._meta.db_table
         description = field_describe.get("description")
         db_column = cast(str, field_describe.get("db_column"))
@@ -177,7 +179,7 @@ class BaseDDL:
             new_column_type=new_column_type,
         )
 
-    def _index_name(self, unique: bool, model: type[Model], field_names: list[str]) -> str:
+    def _index_name(self, unique: bool | None, model: type[Model], field_names: list[str]) -> str:
         return self.schema_generator._generate_index_name(
             "idx" if not unique else "uid", model, field_names
         )
@@ -186,10 +188,10 @@ class BaseDDL:
         self,
         model: type[Model],
         field_names: list[str],
-        unique=False,
+        unique: bool | None = False,
         name: str | None = None,
-        index_type="",
-        extra="",
+        index_type: str = "",
+        extra: str | None = "",
     ) -> str:
         return self._ADD_INDEX_TEMPLATE.format(
             unique="UNIQUE " if unique else "",
@@ -201,7 +203,11 @@ class BaseDDL:
         )
 
     def drop_index(
-        self, model: type[Model], field_names: list[str], unique=False, name: str | None = None
+        self,
+        model: type[Model],
+        field_names: list[str],
+        unique: bool | None = False,
+        name: str | None = None,
     ) -> str:
         return self._DROP_INDEX_TEMPLATE.format(
             index_name=name or self._index_name(unique, model, field_names),
@@ -212,7 +218,7 @@ class BaseDDL:
         return self.drop_index(model, [], name=index_name)
 
     def _generate_fk_name(
-        self, db_table, field_describe: dict, reference_table_describe: dict
+        self, db_table: str, field_describe: dict, reference_table_describe: dict
     ) -> str:
         """Generate fk name"""
         db_column = cast(str, field_describe.get("raw_field"))

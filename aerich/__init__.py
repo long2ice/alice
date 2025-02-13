@@ -39,7 +39,7 @@ class Command:
     async def init(self) -> None:
         await Migrate.init(self.tortoise_config, self.app, self.location)
 
-    async def _upgrade(self, conn, version_file, fake=False) -> None:
+    async def _upgrade(self, conn, version_file, fake: bool = False) -> None:
         file_path = Path(Migrate.migrate_location, version_file)
         m = import_py_file(file_path)
         upgrade = m.upgrade
@@ -51,7 +51,7 @@ class Command:
             content=get_models_describe(self.app),
         )
 
-    async def upgrade(self, run_in_transaction: bool = True, fake=False) -> List[str]:
+    async def upgrade(self, run_in_transaction: bool = True, fake: bool = False) -> List[str]:
         migrated = []
         for version_file in Migrate.get_all_version_files():
             try:
@@ -69,7 +69,7 @@ class Command:
                 migrated.append(version_file)
         return migrated
 
-    async def downgrade(self, version: int, delete: bool, fake=False) -> List[str]:
+    async def downgrade(self, version: int, delete: bool, fake: bool = False) -> List[str]:
         ret: List[str] = []
         if version == -1:
             specified_version = await Migrate.get_last_version()

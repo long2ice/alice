@@ -36,7 +36,7 @@ class MysqlDDL(BaseDDL):
     _MODIFY_COLUMN_TEMPLATE = "ALTER TABLE `{table_name}` MODIFY COLUMN {column}"
     _RENAME_TABLE_TEMPLATE = "ALTER TABLE `{old_table_name}` RENAME TO `{new_table_name}`"
 
-    def _index_name(self, unique: bool, model: type[Model], field_names: list[str]) -> str:
+    def _index_name(self, unique: bool | None, model: type[Model], field_names: list[str]) -> str:
         if unique:
             if len(field_names) == 1:
                 # Example: `email = CharField(max_length=50, unique=True)`
