@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, cast
+from typing import cast
 
 import asyncclick as click
 from asyncclick import Context, UsageError
@@ -50,7 +52,7 @@ async def cli(ctx: Context, config, app) -> None:
         content = config_path.read_text("utf-8")
         doc: dict = tomllib.loads(content)
         try:
-            tool = cast(Dict[str, str], doc["tool"]["aerich"])
+            tool = cast("dict[str, str]", doc["tool"]["aerich"])
             location = tool["location"]
             tortoise_orm = tool["tortoise_orm"]
             src_folder = tool.get("src_folder", CONFIG_DEFAULT_VALUES["src_folder"])
@@ -274,7 +276,7 @@ async def init_db(ctx: Context, safe: bool) -> None:
     required=False,
 )
 @click.pass_context
-async def inspectdb(ctx: Context, table: List[str]) -> None:
+async def inspectdb(ctx: Context, table: list[str]) -> None:
     command = ctx.obj["command"]
     ret = await command.inspectdb(table)
     click.secho(ret)

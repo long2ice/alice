@@ -1,5 +1,4 @@
 checkfiles = aerich/ tests/ conftest.py
-black_opts = -l 100 -t py38
 py_warn = PYTHONDEVMODE=1
 MYSQL_HOST ?= "127.0.0.1"
 MYSQL_PORT ?= 3306
@@ -15,12 +14,12 @@ deps:
 	@poetry install -E asyncpg -E asyncmy -E toml
 
 _style:
-	@isort -src $(checkfiles)
-	@black $(black_opts) $(checkfiles)
+	@ruff check --fix $(checkfiles)
+	@ruff format $(checkfiles)
 style: deps _style
 
 _check:
-	@black --check $(black_opts) $(checkfiles) || (echo "Please run 'make style' to auto-fix style issues" && false)
+	@ruff format --check $(checkfiles) || (echo "Please run 'make style' to auto-fix style issues" && false)
 	@ruff check $(checkfiles)
 	@mypy $(checkfiles)
 	@bandit -r aerich

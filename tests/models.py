@@ -39,7 +39,7 @@ class User(Model):
     intro = fields.TextField(default="")
     longitude = fields.DecimalField(max_digits=10, decimal_places=8)
 
-    products: fields.ManyToManyRelation["Product"]
+    products: fields.ManyToManyRelation[Product]
 
     class Meta:
         # reverse indexes elements
@@ -52,7 +52,7 @@ class Email(Model):
     is_primary = fields.BooleanField(default=False)
     address = fields.CharField(max_length=200)
     users: fields.ManyToManyRelation[User] = fields.ManyToManyField("models.User")
-    config: fields.OneToOneRelation["Config"] = fields.OneToOneField("models.Config")
+    config: fields.OneToOneRelation[Config] = fields.OneToOneField("models.Config")
 
 
 def default_name():
@@ -113,7 +113,7 @@ class Config(Model):
         "models.User", description="User"
     )
 
-    email: fields.OneToOneRelation["Email"]
+    email: fields.OneToOneRelation[Email]
 
 
 class NewModel(Model):

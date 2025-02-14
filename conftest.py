@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import asyncio
 import os
-from typing import Generator
+from collections.abc import Generator
 
 import pytest
 from tortoise import Tortoise, expand_db_url

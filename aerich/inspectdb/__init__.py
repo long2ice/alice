@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import contextlib
-from typing import Any, Callable, Dict, Optional, TypedDict
+from typing import Any, Callable, Dict, TypedDict
 
 from pydantic import BaseModel
 from tortoise import BaseDBAsyncClient
@@ -17,6 +17,7 @@ class ColumnInfoDict(TypedDict):
     comment: str
 
 
+# TODO: use dict to replace typing.Dict when dropping support for Python3.8
 FieldMapDict = Dict[str, Callable[..., str]]
 
 
@@ -25,14 +26,14 @@ class Column(BaseModel):
     data_type: str
     null: bool
     default: Any
-    comment: Optional[str] = None
+    comment: str | None = None
     pk: bool
     unique: bool
     index: bool
-    length: Optional[int] = None
-    extra: Optional[str] = None
-    decimal_places: Optional[int] = None
-    max_digits: Optional[int] = None
+    length: int | None = None
+    extra: str | None = None
+    decimal_places: int | None = None
+    max_digits: int | None = None
 
     def translate(self) -> ColumnInfoDict:
         comment = default = length = index = null = pk = ""

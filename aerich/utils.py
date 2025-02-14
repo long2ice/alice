@@ -4,9 +4,9 @@ import importlib.util
 import os
 import re
 import sys
+from collections.abc import Generator
 from pathlib import Path
 from types import ModuleType
-from typing import Generator, Optional, Union
 
 from asyncclick import BadOptionUsage, ClickException, Context
 from dictdiffer import diff
@@ -94,11 +94,11 @@ def get_models_describe(app: str) -> dict:
     return ret
 
 
-def is_default_function(string: str) -> Optional[re.Match]:
+def is_default_function(string: str) -> re.Match | None:
     return re.match(r"^<function.+>$", str(string or ""))
 
 
-def import_py_file(file: Union[str, Path]) -> ModuleType:
+def import_py_file(file: str | Path) -> ModuleType:
     module_name, file_ext = os.path.splitext(os.path.split(file)[-1])
     spec = importlib.util.spec_from_file_location(module_name, file)
     module = importlib.util.module_from_spec(spec)  # type:ignore[arg-type]

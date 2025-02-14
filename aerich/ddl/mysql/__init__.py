@@ -7,7 +7,7 @@ from tortoise.backends.mysql.schema_generator import MySQLSchemaGenerator
 from aerich.ddl import BaseDDL
 
 if TYPE_CHECKING:
-    from tortoise import Model  # noqa:F401
+    from tortoise import Model
 
 
 class MysqlDDL(BaseDDL):
