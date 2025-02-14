@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import base64
 import json
 import pickle  # nosec: B301,B403
-from typing import Any, Union
+from typing import Any
 
 from tortoise.indexes import Index
 
@@ -40,5 +42,5 @@ def encoder(obj: dict) -> str:
     return json.dumps(obj, cls=JsonEncoder)
 
 
-def decoder(obj: Union[str, bytes]) -> Any:
+def decoder(obj: str | bytes) -> Any:
     return json.loads(obj, object_hook=object_hook)

@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 
 class InspectPostgres(Inspect):
-    def __init__(self, conn: "BasePostgresClient", tables: list[str] | None = None) -> None:
+    def __init__(self, conn: BasePostgresClient, tables: list[str] | None = None) -> None:
         super().__init__(conn, tables)
         self.schema = conn.server_settings.get("schema") or "public"
 

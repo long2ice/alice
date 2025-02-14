@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Type
+from typing import TYPE_CHECKING
 
 from tortoise import Tortoise, generate_schema_for_client
 from tortoise.exceptions import OperationalError
@@ -21,7 +23,7 @@ from aerich.utils import (
 )
 
 if TYPE_CHECKING:
-    from aerich.inspectdb import Inspect  # noqa:F401
+    from aerich.inspectdb import Inspect
 
 
 class Command:
@@ -51,7 +53,7 @@ class Command:
             content=get_models_describe(self.app),
         )
 
-    async def upgrade(self, run_in_transaction: bool = True, fake: bool = False) -> List[str]:
+    async def upgrade(self, run_in_transaction: bool = True, fake: bool = False) -> list[str]:
         migrated = []
         for version_file in Migrate.get_all_version_files():
             try:
@@ -69,8 +71,8 @@ class Command:
                 migrated.append(version_file)
         return migrated
 
-    async def downgrade(self, version: int, delete: bool, fake: bool = False) -> List[str]:
-        ret: List[str] = []
+    async def downgrade(self, version: int, delete: bool, fake: bool = False) -> list[str]:
+        ret: list[str] = []
         if version == -1:
             specified_version = await Migrate.get_last_version()
         else:
@@ -102,7 +104,7 @@ class Command:
                 ret.append(file)
         return ret
 
-    async def heads(self) -> List[str]:
+    async def heads(self) -> list[str]:
         ret = []
         versions = Migrate.get_all_version_files()
         for version in versions:
@@ -110,15 +112,15 @@ class Command:
                 ret.append(version)
         return ret
 
-    async def history(self) -> List[str]:
+    async def history(self) -> list[str]:
         versions = Migrate.get_all_version_files()
         return [version for version in versions]
 
-    async def inspectdb(self, tables: Optional[List[str]] = None) -> str:
+    async def inspectdb(self, tables: list[str] | None = None) -> str:
         connection = get_app_connection(self.tortoise_config, self.app)
         dialect = connection.schema_generator.DIALECT
         if dialect == "mysql":
-            cls: Type["Inspect"] = InspectMySQL
+            cls: type[Inspect] = InspectMySQL
         elif dialect == "postgres":
             cls = InspectPostgres
         elif dialect == "sqlite":

@@ -24,11 +24,10 @@ dictdiffer = "*"
 tomlkit = { version = "*", optional = true, python="<3.11" }
 tomli-w = { version = "^1.1.0", optional = true, python=">=3.11" }
 asyncclick = "^8.1.7.2"
+eval-type-backport = { version = "^0.2.2", python="<3.10" }
 
 [tool.poetry.group.dev.dependencies]
 ruff = "*"
-isort = "*"
-black = "*"
 pytest = "*"
 pytest-xdist = "*"
 # Breaking change in 0.23.*
@@ -57,10 +56,6 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 aerich = "aerich.cli:main"
 
-[tool.black]
-line-length = 100
-target-version = ['py38', 'py39', 'py310', 'py311', 'py312', 'py313']
-
 [tool.pytest.ini_options]
 asyncio_mode = 'auto'
 
@@ -71,5 +66,17 @@ ignore_missing_imports = true
 
 [tool.ruff]
 line-length = 100
+
 [tool.ruff.lint]
-ignore = ['E501']
+extend-select = [
+    "I",      # https://docs.astral.sh/ruff/rules/#isort-i
+    "SIM",    # https://docs.astral.sh/ruff/rules/#flake8-simplify-sim
+    "FA",     # https://docs.astral.sh/ruff/rules/#flake8-future-annotations-fa
+    "UP",     # https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "RUF100", # https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
+]
+ignore = ["UP031"] # https://docs.astral.sh/ruff/rules/printf-string-formatting/
+
+[tool.ruff.lint.per-file-ignores]
+# TODO: Remove this line when dropping support for Python3.8
+"aerich/inspectdb/__init__.py" = ["UP006", "UP035"]
